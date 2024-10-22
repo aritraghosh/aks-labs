@@ -9,96 +9,114 @@ authors: # Required. You can add as many authors as needed
   - "Paul Yu"
 contacts: # Required. Must match the number of authors
   - "@pauldotyu"
-duration_minutes: 90 # Required. Estimated duration in minutes
+duration_minutes: 75 # Required. Estimated duration in minutes
 tags: kubernetes, azure, aks # Required. Tags for filtering and searching
 wt_id: WT.mc_id=containers-153036-pauyu
 ---
 
 ## Overview
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+This lab is meant to be a hands-on experience for platform operators and DevOps engineers looking to get started with AKS Automatic. You will learn how to automate many administrative tasks in Kubernetes and make it easier for development teams to deploy their apps while maintaining security and compliance. AKS Automatic is a new mode of operation for Azure Kubernetes Service (AKS) that simplifies cluster management, reduces manual tasks, and builds in enterprise-grade best practices and policy enforcement.
 
 ### Objectives
 
-- One
-- Two
-- Three
-- Four
+-
 
 ### Prerequisites
 
-- One
-- Two
-- Three
-- Four
-- Five
+The lab environment has been pre-configured for you with an AKS Automatic cluster pre-provisioned with monitoring and logging enabled.
+
+You will need the Azure CLI installed on your local machine. You can install it from [here](https://docs.microsoft.com/cli/azure/install-azure-cli).
+
+With the Azure CLI installed, you will need to install the **aks-preview** extension to leverage preview features in AKS.
+
+Open a terminal and install the AKS preview extension with the following command:
+
+```bash
+az extension add --name aks-preview
+```
 
 ===
 
 ## Security
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit ullamcorper at vivamus egestas nostra potenti curabitur. Venenatis imperdiet class mus urna platea et felis. Posuere justo sodales sodales phasellus porttitor risus pellentesque. Mi fermentum urna sapien venenatis maximus magna. Erat est morbi felis, id porttitor ac. Senectus dapibus scelerisque convallis duis eros in urna. Dictum vitae porttitor faucibus fusce nunc donec fusce mus. Dolor adipiscing pharetra auctor vulputate, in ridiculus mus parturient donec. Placerat commodo non himenaeos class nulla pharetra feugiat vulputate cras.
+Security above all else. This section aims to get you comfortable with managing user access to the Kubernetes API, implementing container security, and practice managing upgrades within the cluster, both node OS images and Kubernetes version upgrades.
 
-Egestas scelerisque primis; suspendisse senectus platea adipiscing. Felis vehicula ornare turpis vitae malesuada molestie augue sociosqu. Torquent turpis adipiscing tellus nisl dignissim elementum. Interdum congue etiam nibh euismod aliquam ac turpis. Faucibus class sed placerat senectus neque fusce nisl porttitor. Purus elementum quis turpis integer porttitor; maecenas felis. Eu at mollis quam cubilia blandit, inceptos sagittis cursus.
+### Granting permissions to the AKS cluster
 
-Cras consectetur nascetur conubia porttitor vivamus ad nullam. Tortor habitant sociosqu convallis commodo et magnis commodo senectus. Elit tristique eleifend nunc sodales odio. Rutrum volutpat vivamus vitae pulvinar integer. Metus phasellus porttitor tempor lobortis magnis; donec vulputate. Platea aliquet ultricies nam orci nulla semper dignissim. Amet viverra leo nunc curae litora. At rutrum cras eget aliquam class facilisis finibus tellus taciti. Nostra class finibus est netus finibus.
+The first thing you need to do is grant the necessary permissions to the AKS cluster. AKS Automatic clusters are Azure RBAC enabled, which means you can assign roles to users, groups, and service principals to manage access to the cluster. When users try to execute kubectl commands against the cluster, they will be instructed to log in with their Microsoft Entra ID credentials for authentication and their assigned roles will determine what they can do within the cluster.
 
-Vehicula nascetur eleifend malesuada rutrum pharetra ante. Nullam fusce turpis malesuada rutrum morbi quisque quis quis id. Aliquam cubilia nibh cubilia laoreet vel; tempor diam id. Nisl lobortis justo maximus amet tempus malesuada lectus sodales quam. Mollis felis dictumst ultrices tincidunt consectetur aenean magna malesuada potenti. Vitae nullam egestas mi facilisis erat luctus. Efficitur cursus malesuada semper mauris senectus convallis facilisi?
+To grant permissions to the AKS cluster, you will need to assign a role. The following built-in roles for Azure-RBAC enabled clusters are available to assign to users.
 
-Egestas convallis non ac cras mollis pharetra sociosqu vehicula. Condimentum odio maecenas habitant aliquet tempus a. Fames nisl nunc enim interdum lacus luctus adipiscing. Conubia ipsum ligula commodo sit pharetra porttitor odio. Primis dolor suscipit proin dignissim phasellus nibh. Rutrum posuere nibh ridiculus, lacus nulla luctus. Ipsum montes elementum condimentum dictum facilisi vestibulum nascetur. Taciti ornare ultrices feugiat cursus molestie viverra ligula cubilia vehicula.
+- [Azure Kubernetes Service RBAC Admin](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/containers#azure-kubernetes-service-rbac-admin)
+- [Azure Kubernetes Service RBAC Cluster Admin](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/containers#azure-kubernetes-service-rbac-cluster-admin)
+- [Azure Kubernetes Service RBAC Reader](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/containers#azure-kubernetes-service-rbac-reader)
+- [Azure Kubernetes Service RBAC Writer](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/containers#azure-kubernetes-service-rbac-writer)
 
-===
+Using Azure Cloud Shell, run the following command to get the AKS cluster credentials
 
-## Secrets and config management
+```bash
+az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
+```
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit ullamcorper at vivamus egestas nostra potenti curabitur. Venenatis imperdiet class mus urna platea et felis. Posuere justo sodales sodales phasellus porttitor risus pellentesque. Mi fermentum urna sapien venenatis maximus magna. Erat est morbi felis, id porttitor ac. Senectus dapibus scelerisque convallis duis eros in urna. Dictum vitae porttitor faucibus fusce nunc donec fusce mus. Dolor adipiscing pharetra auctor vulputate, in ridiculus mus parturient donec. Placerat commodo non himenaeos class nulla pharetra feugiat vulputate cras.
+Create a namespace for the developer to use.
 
-Egestas scelerisque primis; suspendisse senectus platea adipiscing. Felis vehicula ornare turpis vitae malesuada molestie augue sociosqu. Torquent turpis adipiscing tellus nisl dignissim elementum. Interdum congue etiam nibh euismod aliquam ac turpis. Faucibus class sed placerat senectus neque fusce nisl porttitor. Purus elementum quis turpis integer porttitor; maecenas felis. Eu at mollis quam cubilia blandit, inceptos sagittis cursus.
+```bash
+kubectl create namespace blue
+```
 
-Cras consectetur nascetur conubia porttitor vivamus ad nullam. Tortor habitant sociosqu convallis commodo et magnis commodo senectus. Elit tristique eleifend nunc sodales odio. Rutrum volutpat vivamus vitae pulvinar integer. Metus phasellus porttitor tempor lobortis magnis; donec vulputate. Platea aliquet ultricies nam orci nulla semper dignissim. Amet viverra leo nunc curae litora. At rutrum cras eget aliquam class facilisis finibus tellus taciti. Nostra class finibus est netus finibus.
+Since this is the first time you are running a kubectl command, you will be prompted to log in against Microsoft Entra ID. After you have logged in, the command to create the namespace should be successful.
 
-Vehicula nascetur eleifend malesuada rutrum pharetra ante. Nullam fusce turpis malesuada rutrum morbi quisque quis quis id. Aliquam cubilia nibh cubilia laoreet vel; tempor diam id. Nisl lobortis justo maximus amet tempus malesuada lectus sodales quam. Mollis felis dictumst ultrices tincidunt consectetur aenean magna malesuada potenti. Vitae nullam egestas mi facilisis erat luctus. Efficitur cursus malesuada semper mauris senectus convallis facilisi?
+> The kubelogin plugin is used to authenticate with Microsoft Entra ID and can be easily installed with the following command.
 
-Egestas convallis non ac cras mollis pharetra sociosqu vehicula. Condimentum odio maecenas habitant aliquet tempus a. Fames nisl nunc enim interdum lacus luctus adipiscing. Conubia ipsum ligula commodo sit pharetra porttitor odio. Primis dolor suscipit proin dignissim phasellus nibh. Rutrum posuere nibh ridiculus, lacus nulla luctus. Ipsum montes elementum condimentum dictum facilisi vestibulum nascetur. Taciti ornare ultrices feugiat cursus molestie viverra ligula cubilia vehicula.
+```bash
+az aks install-cli
+```
 
-===
+Run the following command to get the AKS cluster ID and the developer user principal ID
 
-## Scaling
+```bash
+AKS_ID=$(az aks show --resource-group myResourceGroup --name myAKSCluster --query id --output tsv)
+DEV_USER_PRINCIPAL_ID=$(az ad user show --id @lab.CloudPortalCredential(User2).Username --query id --output tsv)
+```
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit ullamcorper at vivamus egestas nostra potenti curabitur. Venenatis imperdiet class mus urna platea et felis. Posuere justo sodales sodales phasellus porttitor risus pellentesque. Mi fermentum urna sapien venenatis maximus magna. Erat est morbi felis, id porttitor ac. Senectus dapibus scelerisque convallis duis eros in urna. Dictum vitae porttitor faucibus fusce nunc donec fusce mus. Dolor adipiscing pharetra auctor vulputate, in ridiculus mus parturient donec. Placerat commodo non himenaeos class nulla pharetra feugiat vulputate cras.
+Run the following command to assign the **Azure Kubernetes Service RBAC Writer** role to a developer scoped to the **blue** namespace.
 
-Egestas scelerisque primis; suspendisse senectus platea adipiscing. Felis vehicula ornare turpis vitae malesuada molestie augue sociosqu. Torquent turpis adipiscing tellus nisl dignissim elementum. Interdum congue etiam nibh euismod aliquam ac turpis. Faucibus class sed placerat senectus neque fusce nisl porttitor. Purus elementum quis turpis integer porttitor; maecenas felis. Eu at mollis quam cubilia blandit, inceptos sagittis cursus.
+```bash
+az role assignment create --role "Azure Kubernetes Service RBAC Writer" --assignee $DEV_USER_PRINCIPAL_ID --scope $AKS_ID/namespaces/blue
+```
 
-Cras consectetur nascetur conubia porttitor vivamus ad nullam. Tortor habitant sociosqu convallis commodo et magnis commodo senectus. Elit tristique eleifend nunc sodales odio. Rutrum volutpat vivamus vitae pulvinar integer. Metus phasellus porttitor tempor lobortis magnis; donec vulputate. Platea aliquet ultricies nam orci nulla semper dignissim. Amet viverra leo nunc curae litora. At rutrum cras eget aliquam class facilisis finibus tellus taciti. Nostra class finibus est netus finibus.
+The kubelogin plugin stores the OIDC token in the `~/.kube/cache/kubelogin` directory. In order to test the permissions with a different user, you will need to delete the cached credentials.
 
-Vehicula nascetur eleifend malesuada rutrum pharetra ante. Nullam fusce turpis malesuada rutrum morbi quisque quis quis id. Aliquam cubilia nibh cubilia laoreet vel; tempor diam id. Nisl lobortis justo maximus amet tempus malesuada lectus sodales quam. Mollis felis dictumst ultrices tincidunt consectetur aenean magna malesuada potenti. Vitae nullam egestas mi facilisis erat luctus. Efficitur cursus malesuada semper mauris senectus convallis facilisi?
+Instead of deleting the credentials altogether, we can simply move it to a different directory. Run the following command to move the cached credentials to the parent directory.
 
-Egestas convallis non ac cras mollis pharetra sociosqu vehicula. Condimentum odio maecenas habitant aliquet tempus a. Fames nisl nunc enim interdum lacus luctus adipiscing. Conubia ipsum ligula commodo sit pharetra porttitor odio. Primis dolor suscipit proin dignissim phasellus nibh. Rutrum posuere nibh ridiculus, lacus nulla luctus. Ipsum montes elementum condimentum dictum facilisi vestibulum nascetur. Taciti ornare ultrices feugiat cursus molestie viverra ligula cubilia vehicula.
+```bash
+mv ~/.kube/cache/kubelogin/*.json ..
+```
 
-===
+> https://github.com/int128/kubelogin/issues/29
 
-## Troublshooting
+Run a kukbectl command to trigger a new login
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit ullamcorper at vivamus egestas nostra potenti curabitur. Venenatis imperdiet class mus urna platea et felis. Posuere justo sodales sodales phasellus porttitor risus pellentesque. Mi fermentum urna sapien venenatis maximus magna. Erat est morbi felis, id porttitor ac. Senectus dapibus scelerisque convallis duis eros in urna. Dictum vitae porttitor faucibus fusce nunc donec fusce mus. Dolor adipiscing pharetra auctor vulputate, in ridiculus mus parturient donec. Placerat commodo non himenaeos class nulla pharetra feugiat vulputate cras.
+```bash
+kubectl get namespace blue
+```
 
-Egestas scelerisque primis; suspendisse senectus platea adipiscing. Felis vehicula ornare turpis vitae malesuada molestie augue sociosqu. Torquent turpis adipiscing tellus nisl dignissim elementum. Interdum congue etiam nibh euismod aliquam ac turpis. Faucibus class sed placerat senectus neque fusce nisl porttitor. Purus elementum quis turpis integer porttitor; maecenas felis. Eu at mollis quam cubilia blandit, inceptos sagittis cursus.
+Since the cached credentials have been moved, you will be prompted to log in again. This time, login using the User2 credentials. After logging in, you should see the blue namespace. Now let's see if we can create a pod in the blue namespace.
 
-Cras consectetur nascetur conubia porttitor vivamus ad nullam. Tortor habitant sociosqu convallis commodo et magnis commodo senectus. Elit tristique eleifend nunc sodales odio. Rutrum volutpat vivamus vitae pulvinar integer. Metus phasellus porttitor tempor lobortis magnis; donec vulputate. Platea aliquet ultricies nam orci nulla semper dignissim. Amet viverra leo nunc curae litora. At rutrum cras eget aliquam class facilisis finibus tellus taciti. Nostra class finibus est netus finibus.
+```bash
+kubectl auth can-i create pods --namespace blue
+```
 
-Vehicula nascetur eleifend malesuada rutrum pharetra ante. Nullam fusce turpis malesuada rutrum morbi quisque quis quis id. Aliquam cubilia nibh cubilia laoreet vel; tempor diam id. Nisl lobortis justo maximus amet tempus malesuada lectus sodales quam. Mollis felis dictumst ultrices tincidunt consectetur aenean magna malesuada potenti. Vitae nullam egestas mi facilisis erat luctus. Efficitur cursus malesuada semper mauris senectus convallis facilisi?
+To confirm the developer cannot create pods in the default namespace, run the following command
 
-Egestas convallis non ac cras mollis pharetra sociosqu vehicula. Condimentum odio maecenas habitant aliquet tempus a. Fames nisl nunc enim interdum lacus luctus adipiscing. Conubia ipsum ligula commodo sit pharetra porttitor odio. Primis dolor suscipit proin dignissim phasellus nibh. Rutrum posuere nibh ridiculus, lacus nulla luctus. Ipsum montes elementum condimentum dictum facilisi vestibulum nascetur. Taciti ornare ultrices feugiat cursus molestie viverra ligula cubilia vehicula.
+```bash
+kubectl auth can-i create pods --namespace default
+```
 
-===
+After testing the permissions, delete the developer user's cached credentials, then move the admin's cached credentials back to the `~/.kube/cache/kubelogin` directory.
 
-## Summary
-
-Lorem ipsum odor amet, consectetuer adipiscing elit. Velit ullamcorper at vivamus egestas nostra potenti curabitur. Venenatis imperdiet class mus urna platea et felis. Posuere justo sodales sodales phasellus porttitor risus pellentesque. Mi fermentum urna sapien venenatis maximus magna. Erat est morbi felis, id porttitor ac. Senectus dapibus scelerisque convallis duis eros in urna. Dictum vitae porttitor faucibus fusce nunc donec fusce mus. Dolor adipiscing pharetra auctor vulputate, in ridiculus mus parturient donec. Placerat commodo non himenaeos class nulla pharetra feugiat vulputate cras.
-
-Egestas scelerisque primis; suspendisse senectus platea adipiscing. Felis vehicula ornare turpis vitae malesuada molestie augue sociosqu. Torquent turpis adipiscing tellus nisl dignissim elementum. Interdum congue etiam nibh euismod aliquam ac turpis. Faucibus class sed placerat senectus neque fusce nisl porttitor. Purus elementum quis turpis integer porttitor; maecenas felis. Eu at mollis quam cubilia blandit, inceptos sagittis cursus.
-
-Cras consectetur nascetur conubia porttitor vivamus ad nullam. Tortor habitant sociosqu convallis commodo et magnis commodo senectus. Elit tristique eleifend nunc sodales odio. Rutrum volutpat vivamus vitae pulvinar integer. Metus phasellus porttitor tempor lobortis magnis; donec vulputate. Platea aliquet ultricies nam orci nulla semper dignissim. Amet viverra leo nunc curae litora. At rutrum cras eget aliquam class facilisis finibus tellus taciti. Nostra class finibus est netus finibus.
-
-Vehicula nascetur eleifend malesuada rutrum pharetra ante. Nullam fusce turpis malesuada rutrum morbi quisque quis quis id. Aliquam cubilia nibh cubilia laoreet vel; tempor diam id. Nisl lobortis justo maximus amet tempus malesuada lectus sodales quam. Mollis felis dictumst ultrices tincidunt consectetur aenean magna malesuada potenti. Vitae nullam egestas mi facilisis erat luctus. Efficitur cursus malesuada semper mauris senectus convallis facilisi?
-
-Egestas convallis non ac cras mollis pharetra sociosqu vehicula. Condimentum odio maecenas habitant aliquet tempus a. Fames nisl nunc enim interdum lacus luctus adipiscing. Conubia ipsum ligula commodo sit pharetra porttitor odio. Primis dolor suscipit proin dignissim phasellus nibh. Rutrum posuere nibh ridiculus, lacus nulla luctus. Ipsum montes elementum condimentum dictum facilisi vestibulum nascetur. Taciti ornare ultrices feugiat cursus molestie viverra ligula cubilia vehicula.
+```bash
+rm ~/.kube/cache/kubelogin/*.json
+mv ../*.json ~/.kube/cache/kubelogin/
+```
