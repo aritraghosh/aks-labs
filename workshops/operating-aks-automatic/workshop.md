@@ -16,32 +16,57 @@ wt_id: WT.mc_id=containers-153036-pauyu
 
 ## Overview
 
-This lab is meant to be a hands-on experience for platform operators and DevOps engineers looking to get started with AKS Automatic. You will learn how to automate many administrative tasks in Kubernetes and make it easier for development teams to deploy their apps while maintaining security and compliance. AKS Automatic is a new mode of operation for Azure Kubernetes Service (AKS) that simplifies cluster management, reduces manual tasks, and builds in enterprise-grade best practices and policy enforcement.
+This lab is meant to be a hands-on experience for Azure administrators and DevOps engineers looking to get started with AKS Automatic. You will learn how to automate many administrative tasks in Kubernetes and make it easier for development teams to deploy their apps while maintaining security and compliance. AKS Automatic is a new mode of operation for Azure Kubernetes Service (AKS) that simplifies cluster management, reduces manual tasks, and builds in enterprise-grade best practices and policy enforcement.
 
 ### Objectives
 
--
+By the end of this lab you will be able to:
+
+- Administer user access to the AKS cluster
+- Ensure security best practices with Azure Policy and Deployment Safeguards
+- Sync configurations to the cluster with Azure App Configuration Provider for Kubernetes
+- Leverage AKS Service Connector for passwordless integration with Azure services
+- Appropirately scale workloads across nodes with AKS Node Autoprovision
+- Review workload scheduling best practices
+- Troubleshoot workload failures with monitoring tools and Microsoft Copilot for Azure
 
 ### Prerequisites
 
-The lab environment has been pre-configured for you with an AKS Automatic cluster pre-provisioned with monitoring and logging enabled.
+The lab environment has been pre-configured for you with the following Azure resources:
 
-You will need the Azure CLI installed on your local machine. You can install it from [here](https://docs.microsoft.com/cli/azure/install-azure-cli).
+- AKS Automatic cluster with monitoring enabled
+- Azure Container Registry
+- Azure Log Analytics Workspace
+- Azure Managed Prometheus
+- Azure Managed Grafana
 
-With the Azure CLI installed, you will need to install the **aks-preview** extension to leverage preview features in AKS.
+You will also need the following tools:
 
-Open a terminal, log into Azure, and install the AKS preview extension with the following command:
+- [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [Helm](https://helm.sh/docs/intro/install/)
+
+All command-line instructions in this lab should be executed in a Bash shell. If you are using Windows, you can use the Windows Subsystem for Linux (WSL) or Azure Cloud Shell.
+
+Before you get started, you should log in to the Azure CLI with the following command:
 
 ```bash
 az login
+```
+
+You will also need to install the **aks-preview** extension to leverage preview features in AKS.
+
+```bash
 az extension add --name aks-preview
 ```
 
-Set the default location for resources we will create in this lab.
+Finally set the default location for resources that you will create in this lab using Azure CLI.
 
 ```bash
 az configure --defaults location=$(az group show -n myResourceGroup --query location -o tsv)
 ```
+
+You are now ready to get started with the lab.
 
 ===
 
@@ -310,33 +335,37 @@ It's best practice to create a User-Assigned Managed Identity to access the Azur
 AC_ID=$(az identity create --name $AC_NAME-identity --resource-group myResourceGroup --query id -o tsv)
 ```
 
-AKS offers an extension called the Azure App Configuratoin Provider for Kubernetes that allows you to sync configurations from Azure App Configuration to Kubernetes ConfigMaps. This extension is not installed by default but you can leverage the AKS Service Connector to install it.
+AKS offers an extension called the Azure App Configuratoin Provider for Kubernetes that allows you to sync configurations from Azure App Configuration to Kubernetes ConfigMaps. This extension is not installed by default in AKS Automatic clusters, so you will need to install it manually.
 
-In the Azure Portal, navigate to the AKS cluster and click on **Service Connector (Preview)** under the **Settings** section.
-
-Click on the **+ Create** button to create a new Service Connector.
-
-In the **Basics** tab, enter the following details:
-
-- **Kubernetes namespace**: Enter `dev`
-- **Service type**: Select **App Configuration**
-- **Enable App Configuration extension on Kubernetes**: Check the box
-- **Connection name**: Leave as default
-- **App Configuration**: Select the Azure App Configuration store you created earlier
-
-Click **Next: Authentication**
-
-In the **Authentication** tab, leave **Workload Identity** selected, then select the **User-assigned managed identity** option and select the managed identity you created earlier.
-
-Click **Next: Networking** then click **Next: Review + create** and finally click **Create** as soon as validation check has passed.
+```bash
+az k8s-extension create \
+  --cluster-type managedClusters \
+  --cluster-name myAKSCluster \
+  --resource-group myResourceGroup \
+  --name appconfigurationkubernetesprovider \
+  --extension-type Microsoft.AppConfiguration \
+  --auto-upgrade false \
+  --version 2.0.0
+```
 
 > [!NOTE]
 > This can take up to 5 minutes to complete.
 
-After the Service Connector has been created, you can verify that the Azure App Configuration Provider for Kubernetes extension has been installed in the AKS cluster.
+After the extension has been created, you can verify that the Pods are running.
 
 ```bash
 kubectl get pods -n azappconfig-system
+```
+
+We also want to establish a passwordless connection between the AKS cluster and the Azure App Configuration store. We can do this by leveraging the AKS Service Connector. The AKS Service Connector is a managed service that allows you to connect your AKS cluster to other Azure services. It will take care of manual tasks like setting up the necessary Azure RBAC roles and federated credentials for autentication, creating the necesary Kubernetes Service Account, and creating any firewall rules needed to allow the AKS cluster to communicate with the Azure service.
+
+```bash
+az aks connection create appconfig \
+  --resource-group myResourceGroup \
+  --name myAKSCluster \
+  --tg myResourceGroup \
+  --app-config $AC_NAME \
+  --workload-identity $AC_ID
 ```
 
 The Azure App Configuration Provider for Kubernetes extension also installed new Custom Resource Definitions (CRDs) which you can use to sync configurations from Azure App Configuration to Kubernetes ConfigMaps.
@@ -413,3 +442,141 @@ kubectl get cm -n dev myconfigmap -o jsonpath='{.data}' | jq
 ```
 
 Great job! You have successfully synced configurations from Azure App Configuration to Kubernetes ConfigMaps.
+
+===
+
+## Scaling
+
+One key differentiator of Kubernetes is its ability to scale workloads. One key differentiator of Kubernetes in the cloud is its ability to scale nodes to handle workload scale out. This section aims to get AKS operators comfortable with managing AKS Node Autoprovision, implementing workload scheduling best practices and scaling workloads with KEDA.
+
+### AKS Node Autoprovision
+
+With AKS Automatic, the Node Autoprovision feature is enabled by default. This feature allows the AKS cluster to automatically scale the number of nodes in the cluster based on the workload requirements. The cluster will scale up when there are pending Pods that cannot be scheduled due to insufficient resources and scale down when there are nodes that are underutilized. It will also scale down and try to consolidate workloads to fewer nodes to save costs. This is something that you should account for when planning for high availability for your workloads.
+
+AKS Node Autoprovision is built on top of the Karpenter project which was developed by friends at AWS and is now part of the CNCF. Karpenter is a Kubernetes controller that automates the provisioning, right-sizing, and termination of nodes in a Kubernetes cluster. There are a few key concepts to understand when working with Karpenter:
+
+- **NodeClasses**: A NodeClass is a set of constraints that define the type of node that should be provisioned. For example, you can define a NodeClass that specifies the type of VM, the region, the availability zone, and the maximum number of nodes that can be provisioned.
+- **NodePool**: A NodePool is a set of nodes that are provisioned based on a NodeClass. You can have multiple NodePools in a cluster, each with its own set of constraints.
+- **NodeClaims**: A NodeClaim is a request for a node that matches a set of constraints. When a NodeClaim is created, Karpenter will provision a node that matches the constraints specified in the NodeClaim.
+
+In the AKS Automatic cluster, the default NodeClass and default NodePool are created for you. So you can start deploying workloads right away. The default NodeClass is fairly generic and should be able to handle most workloads. However, you can create additional NodePools with specific constraints if you have workloads that require specific VM attributes.
+
+You can view the default NodePool by running the following command.
+
+```bash
+kubectl get nodepools default -o yaml
+```
+
+Let's create a new NodePool with specific constraints. Run the following command to create a new NodePool.
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  annotations:
+    kubernetes.io/description: General purpose NodePool for dev workloads
+  name: dev
+spec:
+  disruption:
+    budgets:
+    - nodes: 100%
+    consolidationPolicy: WhenUnderutilized
+    expireAfter: Never
+  template:
+    metadata:
+      labels:
+        team: dev
+    spec:
+      nodeClassRef:
+        name: default
+      taints:
+        - key: team
+          value: dev
+          effect: NoSchedule
+      requirements:
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - arm64
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - on-demand
+      - key: karpenter.azure.com/sku-family
+        operator: In
+        values:
+        - D
+EOF
+```
+
+This NodePool manifest creates a new NodePool called **dev** with the following constraints:
+
+- The NodePool is labeled with `team=dev`
+- The NodePool only supports `arm64` architecture
+- The NodePool only supports `linux` operating system
+- The NodePool only supports `on-demand` capacity type
+- The NodePool only supports `D` SKU family
+
+Now that the dev team has their own NodePool, you can try scheduling a Pod that tolerates the taint that will be applied to the dev nodes. Before we do that, let's import the product-service container image into the Azure Container Registry. Remember we created a new Policy Definition that only allows images from allowed container registries.
+
+```bash
+ACR_NAME=$(az acr list --resource-group myResourceGroup --query "[0].name" -o tsv)
+az acr import --name $ACR_NAME --source ghcr.io/azure-samples/aks-store-demo/product-service:1.5.2 --image product-service:1.5.2
+```
+
+Run the following command to create a Pod that tolerates the taint.
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: product-service
+  namespace: dev
+spec:
+  containers:
+  - name: product-service
+    image: $ACR_NAME.azurecr.io/product-service:1.5.2
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: team
+            operator: In
+            values:
+            - dev
+  tolerations:
+  - key: "team"
+    operator: "Equal"
+    value: "dev"
+    effect: "NoSchedule"
+EOF
+```
+
+This Pod manifests ensures that the workload will be scheduled on a Node that has the `team=dev` taint with the `nodeAffinity` and `tolerations` fields. You can check to see if the Pod has been scheduled by running the following command.
+
+```bash
+kubectl get pods product-service -n dev -o wide
+```
+
+You should see the Pod in **Pending** state. This is because the dev NodePool does not have any nodes provisioned yet. The AKS cluster will automatically provision a node in the dev NodePool to satisfy the Pod's requirements.
+
+Once the node has been provisioned, you should see the Pod in **Running** state.
+
+If you run the following command, you will be able to see the SKU that was used to provision the node.
+
+```bash
+kubectl get nodes -l karpenter.sh/nodepool=dev -o custom-columns=NAME:'{.metadata.name}',OS:'{.status.nodeInfo.osImage}',ARCH:'{.status.nodeInfo.architecture}',SKU:'{.metadata.labels.karpenter\.azure\.com/sku-name}'
+```
+
+With AKS Node Autoprovision, you can ensure that your dev teams have the right resources to run their workloads without having to worry about the underlying infrastructure. As demonstrated, you can create NodePools with specific constraints to handle different types of workloads. But it is important to remember that the workload manifests should include the necessary `nodeAffinity` and `tolerations` fields to ensure that the workloads are scheduled on the right nodes. Otherwise, they may be scheduled on the default NodePool which is fairly generic and welcomes all workloads.
+
+### Workload scheduling best practices
+
+When deploying workloads to Kubernetes, it is important to follow best practices to ensure that your workloads are scheduled efficiently and effectively. This includes setting resource requests and limits, using PodDisruptionBudgets, and setting Pod anti-affinity rules.
