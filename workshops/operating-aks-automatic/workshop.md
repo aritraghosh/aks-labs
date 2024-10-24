@@ -910,3 +910,21 @@ kubectl get nodes -o custom-columns=NAME:'{.metadata.name}',OS:'{.status.nodeInf
 ```
 
 Excellent! You have now know about some of the best practices for workload scheduling in Kubernetes to ensure that your workloads are scheduled efficiently and effectively.
+
+## Troubleshooting
+
+Let’s face it. Applications will fail. Being able to quickly identify and mitigate issues is crucial and in this section, you will become familiar with troubleshooting tools and techniques and lean heavily on Azure Copilot to help uncover and solve problems.
+
+Be sure to check out the following resources for more information on troubleshooting AKS:
+
+- [Work with AKS clusters efficiently using Microsoft Copilot in Azure](https://learn.microsoft.com/azure/copilot/work-aks-clusters)
+- [Azure Kubernetes Service (AKS) troubleshooting documentation](https://learn.microsoft.com/troubleshoot/azure/azure-kubernetes/welcome-azure-kubernetes)
+- [Set up Advanced Network Observability for Azure Kubernetes Service (AKS)](https://learn.microsoft.com/azure/aks/advanced-network-observability-cli?tabs=cilium)
+
+## Conclusion
+
+Congratulations! You have completed the workshop on operating AKS Automatic. You have learned how to create an AKS Automatic cluster, enforce custom policies, sync configurations to the cluster, scale workloads, and apply best practices for workload scheduling. You have also learned how to troubleshoot issues in AKS. You are now well-equipped to operate AKS Automatic clusters and ensure that your workloads are running efficiently and effectively.
+
+This lab is also available at https://aka.ms/aks/labs along with others, so feel free to check them out.
+
+If you have any feedback or questions, please feel free to reach out to us at https://aka.ms/aks/feedback.
