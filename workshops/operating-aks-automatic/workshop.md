@@ -81,7 +81,7 @@ You are now ready to get started with the lab.
 
 ===
 
-## Security
+## Security and governance
 
 Security above all else! The AKS Automatic cluster is configured with Azure Role-Based Access Control (RBAC) authentication and authorization, Azure Policy, and Deployment Safeguards enabled out of the box. This section aims to get AKS operators comfortable with administering user access to the AKS cluster, ensuring security best practices with Azure Policy and Deployment Safeguards.
 
@@ -99,7 +99,9 @@ To grant permissions to the AKS cluster, you will need to assign an Azure role. 
 In your shell, run the following command to get the AKS cluster credentials
 
 ```bash
-az aks get-credentials --resource-group myresourcegroup --name myakscluster
+az aks get-credentials \
+--resource-group myresourcegroup \
+--name myakscluster
 ```
 
 A Kubernetes [Namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/) is a way to isolate resources in a cluster and is common practice to create namespaces for different teams or environments. Run the following command to create a namespace for the dev team to use.
@@ -116,19 +118,29 @@ Since this is the first time you are running a kubectl command, you will be prom
 Run the following command to get the AKS cluster's resource ID.
 
 ```bash
-AKS_ID=$(az aks show --resource-group myresourcegroup --name myakscluster --query id --output tsv)
+AKS_ID=$(az aks show \
+--resource-group myresourcegroup \
+--name myakscluster \
+--query id \
+--output tsv)
 ```
 
 Run the following command to get the developer's user principal ID.
 
 ```bash
-DEV_USER_PRINCIPAL_ID=$(az ad user show --id @lab.CloudPortalCredential(Dev).Username --query id --output tsv)
+DEV_USER_PRINCIPAL_ID=$(az ad user show \
+--id @lab.CloudPortalCredential(Dev).Username \
+--query id \
+--output tsv)
 ```
 
 Run the following command to assign the **Azure Kubernetes Service RBAC Writer** role to the developer and have the permissions scoped only to the **dev** namespace. Scoping the permissions to the namespace ensures that the developer can only access the resources within the namespace and not the entire cluster.
 
 ```bash
-az role assignment create --role "Azure Kubernetes Service RBAC Writer" --assignee $DEV_USER_PRINCIPAL_ID --scope $AKS_ID/namespaces/dev
+az role assignment create \
+--role "Azure Kubernetes Service RBAC Writer" \
+--assignee $DEV_USER_PRINCIPAL_ID \
+--scope $AKS_ID/namespaces/dev
 ```
 
 When you logged in to access the Kubernetes API via the kubectl command, you were prompted to log in with your Microsoft Entra ID. The kubelogin plugin stored the OIDC token in the **~/.kube/cache/kubelogin** directory. In order to quickly test the permissions of a different user, we can simply move the JSON file to a different directory.
@@ -166,7 +178,9 @@ helm repo add aks-store-demo https://azure-samples.github.io/aks-store-demo
 Run the following command to install the AKS Store Demo application in the **dev** namespace.
 
 ```bash
-helm install demo aks-store-demo/aks-store-demo-chart --namespace dev --set aiService.create=true
+helm install demo aks-store-demo/aks-store-demo-chart \
+--namespace dev \
+--set aiService.create=true
 ```
 
 The helm install command should show a status of "deployed". This means that the application has successfully deployed in the **dev** namespace. It will take a few minutes to deploy, so let's move on.
@@ -376,73 +390,107 @@ For more information on how to create a policy definition from a ConstraintTempl
 
 Developers need a way to integrate their workloads with Azure services and make the configs available to their workloads in the cluster. They also need to ensure password-less authentication with Microsoft Entra ID is leveraged as much as possible. This section aims to get you comfortable with setting up a centralized configuration store, syncing configs to the cluster as Kubernetes ConfigMaps, and setting up connectors to integrate with other Azure services.
 
-### Sync app configs to the cluster
-
 [Azure Key Vault](https://learn.microsoft.com/azure/key-vault/general/overview) is a cloud service for securely storing and accessing secrets. A secret is anything that you want to tightly control access to, such as API keys, passwords, or certificates. [Azure App Configuration](https://learn.microsoft.com/azure/azure-app-configuration/overview) is a managed service that helps developers centralize their application configurations. It provides a service to store, manage, and retrieve application settings and feature flags. You can also reference secrets stored in Azure Key Vault from Azure App Configuration.
 
 We can leverage these two services to store our application configurations and secrets and make them available to our workloads running in the AKS cluster using native Kubernetes resources; [ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/) and [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/).
 
-#### Provision Azure resources
+### Provision Azure resources
 
 Run the following command to create an Azure Key Vault.
 
 ```bash
-KV_NAME=$(az keyvault create --name mykeyvault$RANDOM --resource-group myresourcegroup --query name -o tsv)
+KV_NAME=$(az keyvault create \
+--name mykeyvault$RANDOM \
+--resource-group myresourcegroup \
+--query name \
+--output tsv)
 ```
 
 Assign yourself the **Key Vault Secrets Administrator** role to the Azure Key Vault.
 
 ```bash
-az role assignment create --role "Key Vault Administrator" --assignee $(az ad signed-in-user show --query id -o tsv) --scope $(az keyvault show --name $KV_NAME --query id -o tsv)
+az role assignment create \
+--role "Key Vault Administrator" \
+--assignee $(az ad signed-in-user show --query id -o tsv) \
+--scope $(az keyvault show --name $KV_NAME --query id -o tsv)
 ```
 
 Run the following command to create a secret in the Azure Key Vault.
 
 ```bash
-az keyvault secret set --vault-name $KV_NAME --name MySecret1 --value MySecretValue1
+az keyvault secret set \
+--vault-name $KV_NAME \
+--name MySecret1 \
+--value MySecretValue1
 ```
 
 Run the following command to create an Azure App Configuration store.
 
 ```bash
-AC_NAME=$(az appconfig create --name myappconfig$RANDOM --resource-group myresourcegroup --query name -o tsv)
+AC_NAME=$(az appconfig create \
+--name myappconfig$RANDOM \
+--resource-group myresourcegroup \
+--query name \
+--output tsv)
 ```
 
 It's best practice to create a User-Assigned Managed Identity to access Azure resources. This identity will be used to access only data in the Azure App Configuration store and the Azure Key Vault and nothing else.
 
 ```bash
-AC_ID=$(az identity create --name $AC_NAME-id --resource-group myresourcegroup --query id -o tsv)
+AC_ID=$(az identity create \
+--name $AC_NAME-id \
+--resource-group myresourcegroup \
+--query id \
+--output tsv)
 ```
 
 Create simple key-value pair in the Azure App Configuration store.
 
 ```bash
-az appconfig kv set --name $AC_NAME --key MyKey1 --value MyValue1 --yes
+az appconfig kv set \
+--name $AC_NAME \
+--key MyKey1 \
+--value MyValue1 \
+--yes
 ```
 
 Now add a key vault reference to the Azure App Configuration store. This will point to the secret that was created in the Azure Key Vault in the previous step.
 
 ```bash
-az appconfig kv set-keyvault --name $AC_NAME --key MySecret1 --secret-identifier https://$KV_NAME.vault.azure.net/secrets/MySecret1 --yes
+az appconfig kv set-keyvault \
+--name $AC_NAME \
+--key MySecret1 \
+--secret-identifier https://$KV_NAME.vault.azure.net/secrets/MySecret1 \
+--yes
 ```
 
 The Azure App Configuration store will have a reference to the secret in the Azure Key Vault and the intent is to use the user-assigned managed identity to access the secret in the key vault. However, this identity needs to be granted access to the key vault. Run the following command to allow the configuration store's managed identity to read secrets from the key vault.
 
 ```bash
-az role assignment create --role "Key Vault Secrets User" --assignee $(az identity show --id $AC_ID --query principalId -o tsv) --scope $(az keyvault show --name $KV_NAME --query id -o tsv)
+az role assignment create \
+--role "Key Vault Secrets User" \
+--assignee $(az identity show --id $AC_ID --query principalId --output tsv) \
+--scope $(az keyvault show --name $KV_NAME --query id --output tsv)
 ```
 
 > [!TIP]
 > You might be wondering "what about the role assignment for the Azure App Configuration store?" We'll get to that in the next section.
 
-#### Azure App Configuration Provider for Kubernetes
+### Azure App Configuration Provider for Kubernetes
 
 AKS offers an extension called the [Azure App Configuration Provider for Kubernetes](https://learn.microsoft.com/azure/aks/azure-app-configuration?tabs=cli) that allows you to sync configurations from Azure App Configuration to Kubernetes ConfigMaps. This extension is not installed by default in AKS Automatic clusters, so you will need to install it manually.
 
 Run the following command to install the Azure App Configuration Provider for Kubernetes extension.
 
 ```bash
-az k8s-extension create --cluster-type managedClusters --cluster-name myakscluster --resource-group myresourcegroup --name appconfigurationkubernetesprovider --extension-type Microsoft.AppConfiguration --auto-upgrade false --version 2.0.0
+az k8s-extension create \
+--cluster-type managedClusters \
+--cluster-name myakscluster \
+--resource-group myresourcegroup \
+--name appconfigurationkubernetesprovider \
+--extension-type Microsoft.AppConfiguration \
+--auto-upgrade false \
+--version 2.0.0
 ```
 
 > [!ALERT]
@@ -454,14 +502,21 @@ After the extension has been created, you can verify that the pods are running.
 kubectl get pods -n azappconfig-system
 ```
 
-#### Passwordless authentication to Azure services
+### Passwordless authentication to Azure services
 
 We also want to establish a passwordless connection between the AKS cluster and the Azure App Configuration store. We can do this by leveraging the [AKS Service Connector](https://learn.microsoft.com/azure/service-connector/how-to-use-service-connector-in-aks). The AKS Service Connector will take care of manual tasks like setting up the necessary Azure RBAC roles and federated credentials for authentication, creating the necessary Kubernetes Service Account, and creating any firewall rules needed to allow the AKS cluster to communicate with the Azure service. It makes it really simple to get your application pods connected to Azure services using [AKS Workload Identity](https://learn.microsoft.com/azure/aks/workload-identity-deploy-cluster).
 
 Run the following command to create an AKS Service Connector to connect the AKS cluster to the Azure App Configuration store.
 
 ```bash
-az aks connection create appconfig --kube-namespace dev --name myakscluster --resource-group myresourcegroup --target-resource-group myresourcegroup --app-config $AC_NAME --workload-identity $AC_ID --client-type none
+az aks connection create appconfig \
+--kube-namespace dev \
+--name myakscluster \
+--resource-group myresourcegroup \
+--target-resource-group myresourcegroup \
+--app-config $AC_NAME \
+--workload-identity $AC_ID \
+--client-type none
 ```
 
 > [!ALERT]
@@ -472,7 +527,7 @@ This command will create a service connector to allow pods in the **dev** namesp
 > [!TIP]
 > The AKS Service Connector can also be used to connect your application pods to many other Azure services that support Microsoft Entra ID authentication. For more information, refer to the [service connector documentation](https://learn.microsoft.com/azure/service-connector/overview#what-services-are-supported-by-service-connector).
 
-#### Config sync to Kubernetes
+### Config sync to Kubernetes
 
 The Azure App Configuration Provider for Kubernetes extension also installed new Kubernetes [Custom Resource Definitions (CRDs)](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) which you can use to sync configurations from the Azure App Configuration store to Kubernetes ConfigMaps and optionally Kubernetes Secrets.
 
@@ -481,7 +536,10 @@ We can now deploy a sync configuration manifest to sync the configurations from 
 Run the following command to get the Azure App Configuration store's endpoint.
 
 ```bash
-AC_ENDPOINT=$(az appconfig show -n $AC_NAME --query endpoint --output tsv)
+AC_ENDPOINT=$(az appconfig show \
+--name $AC_NAME \
+--query endpoint \
+--output tsv)
 ```
 
 As mentioned above, we will use Workload Identity to connect to the Azure App Configuration store in a passwordless manner. The AKS Automatic cluster is already configured with Workload Identity, and the AKS Service Connector created a Kubernetes ServiceAccount that you can use to authenticate to the Azure App Configuration store and ultimately the Azure Key Vault.
@@ -545,7 +603,11 @@ The app config sync is set to refresh every 10 seconds and you can choose which 
 Run the following command to update the value for Key1 in the Azure App Configuration store.
 
 ```bash
-az appconfig kv set --name $AC_NAME --key MyKey1 --value MyNewValue1 --yes
+az appconfig kv set \
+--name $AC_NAME \
+--key MyKey1 \
+--value MyNewValue1 \
+--yes
 ```
 
 After a minute or so, you can check to see if the configurations have been updated in the Kubernetes ConfigMap.
@@ -558,7 +620,7 @@ Great job! You have successfully synced configurations from Azure App Configurat
 
 ===
 
-## Scaling
+## Scaling and workload scheduling
 
 One key benefit of Kubernetes is its ability to scale workloads across a pool of nodes. One key differentiator of **Kubernetes in the cloud** is its ability to scale the node pool to handle more workloads to meet user demand. This section aims to get you comfortable with scaling capabilities of AKS Automatic and understand workload scheduling best practices.
 
@@ -650,13 +712,19 @@ Now that the dev team has their own NodePool, you can try scheduling a pod that 
 Run the following command to get the name of the Azure Container Registry.
 
 ```bash
-ACR_NAME=$(az acr list --resource-group myresourcegroup --query "[0].name" -o tsv)
+ACR_NAME=$(az acr list \
+--resource-group myresourcegroup \
+--query "[0].name" \
+--output tsv)
 ```
 
 Run the following command to import the product-service container image into the Azure Container Registry.
 
 ```bash
-az acr import --name $ACR_NAME --source ghcr.io/azure-samples/aks-store-demo/product-service:1.5.2 --image product-service:1.5.2
+az acr import \
+--name $ACR_NAME \
+--source ghcr.io/azure-samples/aks-store-demo/product-service:1.5.2 \
+--image product-service:1.5.2
 ```
 
 Run the following command to replace the existing product-service pod with ones that tolerates the taint. This will ensure that the pod is scheduled on the dev NodePool.
@@ -720,17 +788,13 @@ Once you see the new node being provisioned, press **Ctrl+C** to exit the watch 
 kubectl get po -n dev -l app=product-service -o wide
 ```
 
-Congrats! You have successfully created a new NodePool for your dev team and have the proper constraints in place to ensure that the right workloads are scheduled on the right nodes.
-
-### Workload scheduling best practices
-
 With NAP, you can ensure that your dev teams have the right resources to run their workloads without having to worry about the underlying infrastructure. As demonstrated, you can create NodePools with specific constraints to handle different types of workloads. But it is important to remember that the workload manifests include the necessary scheduling attributes such as **nodeAffinity** and **tolerations** to ensure that the workloads are scheduled on the right nodes. Otherwise, they may be scheduled on the default NodePool which is fairly generic and welcomes all workloads.
 
 When deploying workloads to Kubernetes, it is important to follow best practices to ensure that your workloads are scheduled efficiently and effectively. This includes setting resource requests and limits, using PodDisruptionBudgets, and setting pod anti-affinity rules.
 
 Let's explore a few best practices for workload scheduling.
 
-#### Resource requests
+### Resource requests
 
 When deploying workloads to Kubernetes, it is important to set resource requests and limits. Resource requests are used by the scheduler to find the best node to place the pod on. Resource limits are used to prevent a pod from consuming more resources than it should. By setting resource requests and limits, you can ensure that your workloads are scheduled efficiently and effectively. We saw an example of this earlier when we deployed a pod with resource requests and limits after seeing warnings about not having them set.
 
@@ -779,7 +843,7 @@ With requests in place, the scheduler can make better decisions about where to p
 > [!KNOWLEDGE]
 > KEDA is the Kubernetes-based Event Driven Autoscaler. With KEDA, you can scale your workloads based on the number of events in a queue, the length of a stream, or any other custom metric. It won't be covered in this lab, but the KEDA add-on for AKS is enabled by default in AKS Automatic clusters and you can learn more about it [here](https://learn.microsoft.com/azure/aks/keda-about).
 
-#### Dealing with disruptions
+### Dealing with disruptions
 
 When deploying workloads to Kubernetes, it is important to ensure that your workloads are highly available and resilient to voluntary and involuntary disruptions. This is especially important when running workloads with Karpenter because nodes can be provisioned and deprovisioned automatically. There are a few best practices to follow to ensure that your workloads are highly available and resilient to disruptions.
 
@@ -804,11 +868,11 @@ Follow these steps to create a PodDisruptionBudget for the product-service runni
 
 Great! So now that you have a PodDisruptionBudget in place, you can be sure that at least one replica of the product-service will be available at all times. This is especially important when running workloads with Karpenter because it will try to consolidate as much as possible.
 
-#### More Karpenter features
+### More Karpenter features
 
 There are other ways to deal with Karpenter's desire to consolidate nodes and still maintain a healthy app. Karpenter also supports [Consolidation Policies](https://karpenter.sh/docs/concepts/disruption/#consolidation) which allows you to customize the consolidation behavior. You can also set [node disruption budgets](https://karpenter.sh/docs/concepts/disruption/#nodepool-disruption-budgets) in the NodePool manifest to specify the percentage of nodes that can be consolidated at a time. Lastly, if you want to simply prevent a pod or node from being disrupted, you can use the **karpenter.sh/do-not-disrupt: true** annotation at the [pod level](https://karpenter.sh/docs/concepts/disruption/#pod-level-controls) or at the [node level](https://karpenter.sh/docs/concepts/disruption/#node-level-controls).
 
-#### More on affinity and anti-affinity
+### More on affinity and anti-affinity
 
 [Affinity and anti-affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) in Kubernetes is a way for you to influence the scheduling of pods in a Kubernetes cluster. We saw an example of this earlier when we deployed a pod with node affinity and tolerations to ensure that the pod was scheduled on a node that matched the criteria. Pod anti-affinity is used to ensure that pods are not scheduled on the same node. If you noticed, the product-service deployment included three replicas but they were all scheduled on the same node.
 
@@ -878,7 +942,7 @@ kubectl get po -n dev -l app=product-service -o wide -w
 
 Once you see the pods being scheduled on different nodes, press **Ctrl+C** to exit the watch.
 
-#### Pod topology spread constraints
+### Pod topology spread constraints
 
 To take the concept of spreading pods across nodes even further, you can use [Pod topology spread constraints](https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/) on top of pod anti-affinity rules. Pod topology spread constraints are used to ensure that pods are spread across different fault domains such as [Azure availability zones](https://learn.microsoft.com/azure/reliability/availability-zones-overview?tabs=azure-cli). With AKS Automatic, one of its requirements is to ensure the region its being deployed to supports availability zones. Therefore, you can be sure that the nodes provisioned by Karpenter can be spread across different availability zones.
 
@@ -977,15 +1041,106 @@ kubectl get po -n dev -l app=product-service -o wide
 
 Excellent! You have now know about some of the best practices for workload scheduling in Kubernetes to ensure that your workloads are scheduled efficiently and effectively.
 
-## Troubleshooting
+===
 
-Let’s face it. Applications will fail. Being able to quickly identify and mitigate issues is crucial and in this section, you will become familiar with troubleshooting tools and techniques and lean heavily on Azure Copilot to help uncover and solve problems.
+## Troubleshooting workloads
 
-Be sure to check out the following resources for more information on troubleshooting AKS:
+Let's face it. Applications will fail. Being able to quickly identify and mitigate issues is crucial and in this section, you will become familiar with common kubernetes troubleshooting techniques and lean heavily on Microsoft Copilot for Azure to help uncover and solve problems.
+
+### Troubleshooting with Azure Copilot
+
+[Microsoft Copilot for Azure](https://learn.microsoft.com/azure/copilot/overview) is a tool built into the Azure portal that enables you to diagnose and troubleshoot issues. It is not only limited to AKS but you can use it to help troubleshoot any issues with your Azure resources. The Azure Copilot provides a guided experience to lead you through the troubleshooting process and helps you understand concepts by offering explanations, suggestions, and resource URLs to learn more.
+
+Use the Azure Copilot to help you find and fix issues with your workloads.
+
+In the Azure Portal, navigate to your AKS cluster and click on the Copilot button found at the top of the page. A panel will open on the right side of the screen and you will be presented with some suggested prompts.
+
+Ask the Copilot `how's the health of my pods?`
+
+You should be presented with a kubectl command that you can run to get the status of your pods. Click the **Yes** button to execute the command from the Run command page.
+
+In the Run command page, the kubectl command will be pre-populated in the textbox at the bottom of the page. Click on **Run** to execute the command. You will see the output of the kubectl command in the main panel.
+
+Scroll through the output and see if you can spot the issue.
+
+There is a problem with the ai-service pod.
+
+Ask the Copilot `I see the the ai-service pod in the dev namespace with crashloopbackoff status. What does that mean?` The Copilot should provide you with an explanation of what the crashloopbackoff status means and how to troubleshoot it.
+
+You were not specific with the pod name so the Copilot gave you a general command to run, so re-prompt the Copilot to restate the commands by giving it the exact pod name `The exact pod name is ai-service-xxxxx. What commands should I run again?`
+
+Some of the commands may include a **Run** button that can enable the Azure Cloud Shell, don't use this as you'd need to re-authenticate from within the Cloud Shell. Instead, copy the **kubectl describe** pod command and run it in the Run command window to get more information about the pod. The **kubectl describe** command will provide you with more information about the pod including the events that led to the crashloopbackoff status. You might get a little more information about the issue if you look through the pod logs. The Copilot should have also provided you with a **kubectl logs** command to get the logs of the pod. Run that command to get the logs.
+
+You should see that the ai-service pod is failing because it is missing environment variables that are required to connect to Azure OpenAI. Do you have an Azure OpenAI service running? If you are not sure, you can ask the Copilot `Do I have an Azure OpenAI service running?`
+
+The Copilot will provide you with an [Azure Resource Graph](https://learn.microsoft.com/azure/governance/resource-graph/overview) command and run it behind the scenes to determine if you have an Azure OpenAI service running.
+
+It should have determined there is no Azure OpenAI service running.
+
+You go back to your dev team and they tell you that they will need an Azure OpenAI service with the GPT-3.5 Turbo model to run the ai-service pod.
+
+Ask the Copilot `How do I create an Azure OpenAI service with the GPT-3.5 Turbo model?`
+
+The instructions should be very close to what you need. You can either follow the instructions and/or reference the docs it replies with or you can run the following commands to quickly create an Azure OpenAI service account.
+
+```bash
+AI_NAME=$(az cognitiveservices account create \
+--name myaiservice$RANDOM \
+--resource-group myresourcegroup \
+--kind OpenAI \
+--sku S0 \
+--query name \
+--output tsv)
+```
+
+Next, run the following command to deploy a GPT-3.5 Turbo model.
+
+```bash
+az cognitiveservices account deployment create \
+--name $AI_NAME \
+--resource-group myresourcegroup \
+--deployment-name gpt-35-turbo \
+--model-name gpt-35-turbo \
+--model-version "0301" \
+--model-format OpenAI \
+--sku-capacity 1 \
+--sku-name "Standard"
+```
+
+> [!IMPORTANT]
+> The model version above may not be available in your region. You can the model availability [here](https://learn.microsoft.com/azure/ai-services/openai/concepts/models?tabs=python-secure#standard-deployment-model-availability)
+
+The dev team also tells you that the ai-service pod requires a ConfigMap named **ai-service-configs** with the following environment variables to connect to the Azure OpenAI service.
+
+- **AZURE_OPENAI_DEPLOYMENT_NAME** set to "gpt-35-turbo"
+- **AZURE_OPENAI_ENDPOINT** set to the endpoint of the Azure OpenAI service
+- **USE_AZURE_OPENAI** set to "True"
+
+Additionally the ai-service pod requires a Secret named **ai-service-secrets** with the following variable to authenticate to the Azure OpenAI service.
+
+- **OPENAI_API_KEY** set to the API key of the Azure OpenAI service
+
+Can you complete the rest of the steps to get the ai-service pod running?
+
+> [!HINT]
+> You can put the environment variables in the Azure App Configuration store and sync them to the Kubernetes ConfigMap. You can then update the ai-service deployment to use the ConfigMap for the environment variables.
+
+How can you go about updating this to use passwordless authentication with AKS Workload Identity instead?
+
+> [!HINT]
+> A complete walkthrough of the solution can be found [here](https://learn.microsoft.com/azure/aks/open-ai-secure-access-quickstart)
+
+### Troubleshooting with kubectl
+
+The Azure Copilot gave you some pretty good suggestions to start troubleshooting with kubectl. The **kubectl describe** command is a great way to get more information about a pod. You can also use the **kubectl logs** command to get the logs of a pod. One thing to note about using the **kubectl logs** command is that it only works for pods that are running. If the pod is in a crashloopbackoff status, you may not be able to get the logs of the pod that failed. In this case you can use the **--previous** flag to get the logs of the previous container that failed.
+
+Finally, be sure to checkout the [Troubleshooting Applications](https://kubernetes.io/docs/tasks/debug/debug-application/) guide found on the Kubernetes documentation site and the following resources for more information on troubleshooting AKS:
 
 - [Work with AKS clusters efficiently using Microsoft Copilot in Azure](https://learn.microsoft.com/azure/copilot/work-aks-clusters)
 - [Azure Kubernetes Service (AKS) troubleshooting documentation](https://learn.microsoft.com/troubleshoot/azure/azure-kubernetes/welcome-azure-kubernetes)
 - [Set up Advanced Network Observability for Azure Kubernetes Service (AKS)](https://learn.microsoft.com/azure/aks/advanced-network-observability-cli?tabs=cilium)
+
+===
 
 ## Conclusion
 
