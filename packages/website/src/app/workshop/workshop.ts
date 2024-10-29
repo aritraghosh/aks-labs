@@ -34,9 +34,9 @@ export async function loadWorkshop(repoPath: string, options?: LoaderOptions): P
     }
 
     function replaceMarkdownTag(markdown: string, tag: string, className: string, dataTitle: string): string {
-      const regex = new RegExp(`> \\[!${tag}]\\n(> .*\\n)*`, 'g');
+      const regex = new RegExp(`> \\[!${tag}]\\n(> .*\\n)*`, 'gi');
       return markdown.replace(regex, (match) => {
-        const contentWithoutTag = match.replace(new RegExp(`> \\[!${tag}]\\n`), '');
+        const contentWithoutTag = match.replace(new RegExp(`> \\[!${tag}]\\n`, 'i'), '');
         return `<div class="${className}" data-title="${dataTitle}">\n\n${contentWithoutTag}\n</div>\n`;
       });
     }
