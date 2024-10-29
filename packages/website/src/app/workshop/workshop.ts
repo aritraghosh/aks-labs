@@ -33,59 +33,19 @@ export async function loadWorkshop(repoPath: string, options?: LoaderOptions): P
       markdown = `<h1 class="visually-hidden">${fileContents.meta.title}</h1>\n\n${markdown}`;
     }
 
-    // Replace the specific content for [!NOTE]
-    markdown = markdown.replace(
-      /> \[!NOTE]\n(> .*\n)*/g,
-      (match) => {
-        const contentWithoutNoteTag = match.replace(/> \[!NOTE]\n/, '');
-        return `<div class="task" data-title="note">\n\n${contentWithoutNoteTag}\n</div>\n`;
-      }
-    );
+    function replaceMarkdownTag(markdown: string, tag: string, className: string, dataTitle: string): string {
+      const regex = new RegExp(`> \\[!${tag}]\\n(> .*\\n)*`, 'g');
+      return markdown.replace(regex, (match) => {
+        const contentWithoutTag = match.replace(new RegExp(`> \\[!${tag}]\\n`), '');
+        return `<div class="${className}" data-title="${dataTitle}">\n\n${contentWithoutTag}\n</div>\n`;
+      });
+    }
 
-    // Replace the specific content for [!HELP]
-    markdown = markdown.replace(
-      /> \[!HELP]\n(> .*\n)*/g,
-      (match) => {
-        const contentWithoutHelpTag = match.replace(/> \[!HELP]\n/, '');
-        return `<div class="warning" data-title="help">\n\n${contentWithoutHelpTag}\n</div>\n`;
-      }
-    );
-
-    // Replace the specific content for [!ALERT]
-    markdown = markdown.replace(
-      /> \[!ALERT]\n(> .*\n)*/g,
-      (match) => {
-        const contentWithoutAlertTag = match.replace(/> \[!ALERT]\n/, '');
-        return `<div class="important" data-title="important">\n\n${contentWithoutAlertTag}\n</div>\n`;
-      }
-    );
-
-    // Replace the specific content for [!HINT]
-    markdown = markdown.replace(
-      /> \[!HINT]\n(> .*\n)*/g,
-      (match) => {
-        const contentWithoutHintTag = match.replace(/> \[!HINT]\n/, '');
-        return `<div class="tip" data-title="hint">\n\n${contentWithoutHintTag}\n</div>\n`;
-      }
-    );
-
-    // Replace the specific content for [!TIP]
-    markdown = markdown.replace(
-      /> \[!TIP]\n(> .*\n)*/g,
-      (match) => {
-        const contentWithoutTipTag = match.replace(/> \[!TIP]\n/, '');
-        return `<div class="tip" data-title="tip">\n\n${contentWithoutTipTag}\n</div>\n`;
-      }
-    );
-
-    // Replace the specific content for [!KNOWLEDGE]
-    markdown = markdown.replace(
-      /> \[!KNOWLEDGE]\n(> .*\n)*/g,
-      (match) => {
-        const contentWithoutKnowledgeTag = match.replace(/> \[!KNOWLEDGE]\n/, '');
-        return `<div class="tip" data-title="knowledge">\n\n${contentWithoutKnowledgeTag}\n</div>\n`;
-      }
-    );
+    markdown = replaceMarkdownTag(markdown, 'KNOWLEDGE', 'tip', 'knowledge');
+    markdown = replaceMarkdownTag(markdown, 'ALERT', 'important', 'alert');
+    markdown = replaceMarkdownTag(markdown, 'NOTE', 'task', 'note');
+    markdown = replaceMarkdownTag(markdown, 'HELP', 'warning', 'help');
+    markdown = replaceMarkdownTag(markdown, 'HINT', 'tip', 'hint');
 
     return { title, headings, markdown };
   });
