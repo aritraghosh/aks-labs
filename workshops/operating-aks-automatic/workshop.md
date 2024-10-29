@@ -286,7 +286,7 @@ In the **Overview** section, you will see the **AKS Deployment Safeguards Policy
 
 Click on the policy assignment to view the compliance state of the cluster resources. You should see some of the policy warnings that were displayed in the terminal output when you deployed the pod without best practices in place.
 
-Awesome! Now you know where to expect to see warnings both in the terminal and in the Azure and how to address some of these warnings by following best practices.
+Nice! Now you know where to expect to see warnings both in the terminal and in the Azure and how to address some of these warnings by following best practices.
 
 ### Custom policy enforcement
 
@@ -318,71 +318,86 @@ In the output you should see **This cluster is governed by Azure Policy. Policie
 
 So we need to translate this ConstraintTemplate to an Azure Policy definition and if you are unsure about how to translate ConstraintTemplates to Azure Policy JSON, the [Azure Policy extension for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=AzurePolicy.azurepolicyextension) is available to help.
 
-Open VS Code.
+#### Create a custom policy definition from a ConstraintTemplate
 
-> [!ALERT]
-> If you are on a Windows machine, make sure you have the [Remote - WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl) extension installed.
+Using the Azure Policy extension for Visual Studio Code, you can easily create a custom policy definition from a ConstraintTemplate.
 
-Connect to WSL by pressing **Ctrl+Shift+P** on your keyboard and typing **WSL: Connect to WSL**.
-
-Make sure the Azure Policy extension is installed. If not, you can install it from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=AzurePolicy.azurepolicyextension).
-
-To activate the extension, press **Ctrl+Shift+P** on your keyboard to open the command palette and type **Azure: Sign in** then use the web browser to authenticate with your admin user account.
+- Open VS Code and make sure the Azure Policy extension is installed. If not, you can install it from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=AzurePolicy.azurepolicyextension)
+- To activate the extension, press **Ctrl+Shift+P** on your keyboard to open the command palette and type **Azure: Sign in** then use the web browser to authenticate with your admin user account
 
 > [!HELP]
 > If you see multiple sign-in options, choose the one that has **azure-account.login** next to it.
 
-Next, press **Ctrl+Shift+P** again and type **Azure: Select Subscriptions** then select the subscription that contains the AKS cluster.
+- Press **Ctrl+Shift+P** again and type **Azure: Select Subscriptions** then select the subscription that contains the AKS cluster
 
 > [!HELP]
 > If you see multiple subscriptions, choose the one that has **azure-account.selectSubscriptions** next to it.
 
-In VS Code, click the **Azure Policy** icon and you should see the subscription resources and policies panes being loaded.
-
-Open the VS Code terminal and run the following command download the sample ConstraintTemplate file to your local machine.
+- In VS Code sidebar, click the **Azure Policy** icon and you should see the subscription resources and policies panes being loaded
+- Open the VS Code terminal and run the following command download the sample ConstraintTemplate file to your local machine
 
 ```bash
 curl -o constrainttemplate.yaml https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/ignite/workshops/operating-aks-automatic/assets/files/constrainttemplate.yaml
 ```
 
-Open the constrainttemplate.yaml file in VS Code.
+- Open the constrainttemplate.yaml file in VS Code and take a look at the contents
 
-The constraint template includes Rego code that enforces that all containers in the AKS cluster are sourced from approved container registries. The approved container registries are defined in the **registry** parameter and this is where you can specify the container registry URL.
+> [!KNOWLEDGE]
+> The constraint template includes Rego code on line 17 that enforces that all containers in the AKS cluster are sourced from approved container registries. The approved container registries can are defined in the **registry** parameter and this is where you can specify the container registry URL when implementing the ConstraintTemplate.
 
-To convert this template to Azure Policy JSON, press **Ctrl+Shift+P** then type **Azure Policy for Kubernetes: Create Policy Definition from a Constraint Template** and select the **Base64Encoded** option.
+- To convert this template to Azure Policy JSON, press **Ctrl+Shift+P** then type **Azure Policy for Kubernetes: Create Policy Definition from a Constraint Template**
 
-This will generate a new Azure Policy definition in the JSON format. You will need to fill in details everywhere you see the text **/_ EDIT HERE _/**. For **apiGroups** field, you can use the value **[""]** to target all API groups and for the **kind** field, you can use the value **["Pod"]** to target pods.
+> [!HELP]
+> The extension activation process can take a few minutes to complete. If you cannot get the extension to generate JSON from the ConstraintTemplate, that's okay, you will use a sample JSON file to create the policy definition.
 
-> [!ALERT]
-> The extension activation process might take a few minutes to complete. If you cannot get the extension to generate JSON from the ConstraintTemplate, that's okay, you will use a sample JSON file to create the policy definition in the next step.
+- Select the **Base64Encoded** option
+- This will generate a new Azure Policy definition in the JSON format and encode the ConstraintTemplate in Base64 format
 
-The Azure Policy definition will need to be deployed using the Azure Portal. Run the following command download the sample ConstraintTemplate file to your local machine.
+> [!NOTE]
+> The template info can also refer to a URL where the ConstraintTemplate is hosted. This is useful when you want to reference a ConstraintTemplate that is hosted in a public repository.
+
+- Fill in details where you see the text **/_ EDIT HERE _/**
+  - For **displayName** field use the value `Approved registries only`
+  - For **description** field use the value `This policy requires that all containers in an AKS cluster are sourced from approved container registries.`
+  - For **apiGroups** field use the value `[""]` to target all API groups
+  - For the **kind** field use the value `["Pod"]` to target pods
+
+#### Deploy a custom policy definition
+
+With the custom policy rule written, you can now deploy it to Azure.
+
+- Open a terminal and run the following command to download the sample Azure Policy JSON file to your local machine
 
 ```bash
 curl -o constrainttemplate-as-policy.json https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/ignite/workshops/operating-aks-automatic/assets/files/constrainttemplate-as-policy.json
 ```
 
-To create the policy definition and assign it to the AKS cluster, follow these steps:
-
 - Open **constrainttemplate-as-policy.json** file and copy the JSON to the clipboard
-- Navigate back to the Azure Policy blade in the Azure Portal
+- Navigate back to the [Azure Policy blade](https://portal.azure.com/#view/Microsoft_Azure_Policy/PolicyMenuBlade/~/Overview) in the Azure Portal
 - Click on **Definitions** under the **Authoring** section
 - Click on **+ Policy definition** then enter the following details:
-  - **Definition location**: Click the button next to the textbox, then select your subscription in the dropdown and click **Select**
+  - **Definition location**: Click the button next to the textbox, then select your subscription in the dropdown and click the **Select** button at the bottom
   - **Name**: `[AKS] Approved registries only`
   - **Description**: `This policy requires that all containers in an AKS cluster are sourced from approved container registries.`
   - **Category**: Click the **Use existing** radio button then select **Kubernetes** from the dropdown
   - **Policy rule**: Clear the existing content and paste the JSON you copied from the **constrainttemplate-as-policy.json** file
-- Click **Save** then click on **Assign policy** button
+- Click **Save** at the bottom of the page
+
+#### Deploy a custom policy definition
+
+With the custom policy definition created, you can now assign it to the AKS cluster.
+
+- Click the **Assign policy** button
 - In the **Basics** tab, enter the following details:
-  - **Scope**: Click the button next to the textbox, select the **myresourcegroup** which contains the AKS cluster and click **Select**
+  - **Scope**: Click the button next to the textbox, select the **myresourcegroup** which contains the AKS cluster and click **Select** at the bottom
 - Click **Next**
 - In the **Parameters** tab, enter the following details:
   - Uncheck the **Only show parameters that need input or review** checkbox
   - **Effect**: Select **deny** from the dropdown
   - **Namespace exclusions**: Replace the existing content with `["kube-system","kube-node-lease","kube-public", "gatekeeper-system","app-routing-system","azappconfig-system","sc-system"]`
   - **Image registry**: Enter your container registry URL, for example `@lab.CloudResourceTemplate(AKSAutomatic).Outputs[containerRegistryLoginServer]/`
-- Click **Review + create** then click **Create**
+- Click **Review + create** to review the policy assignment
+- Click **Create** to assign the policy definition to the AKS cluster
 
 Awesome! You have successfully enforced custom policies in the AKS cluster. Once the policy assignment has taken effect, you can try deploying a pod with an image from an unapproved container registry to see the policy in action. However, this policy assignment can take up to 15 minutes to take effect, so let's move on to the next section.
 

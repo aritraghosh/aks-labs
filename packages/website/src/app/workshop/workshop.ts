@@ -50,6 +50,9 @@ export async function loadWorkshop(repoPath: string, options?: LoaderOptions): P
     // Replace all occurrences of the @lab.CloudPortalCredential(*).Username markdown tag with a placeholder
     markdown = markdown.replace(/@lab\.CloudPortalCredential\([^)]+\)\.Username/gi, '<replace_with_dev_user_principal_name>');
 
+    // Replace all occurences of the @lab.CloudResourceTemplate(*).Outputs[*] markdown
+    markdown = markdown.replace(/@lab\.CloudResourceTemplate\([^)]+\)\.Outputs\[[^\]]+\]/gi, '<your_container_registry_url>');
+
     return { title, headings, markdown };
   });
   return {
