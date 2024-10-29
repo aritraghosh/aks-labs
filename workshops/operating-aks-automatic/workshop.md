@@ -42,7 +42,7 @@ The lab environment has been pre-configured for you with the following Azure res
 - [Azure Managed Prometheus](https://learn.microsoft.com/azure/azure-monitor/essentials/prometheus-metrics-overview)
 - [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview)
 
-> [!HELP]
+> [!NOTE]
 > The Bicep template used to deploy the lab environment can be found [here](https://raw.githubusercontent.com/pauldotyu/ignite/refs/heads/main/aks.bicep)
 
 You will also need the following tools:
@@ -64,7 +64,7 @@ az login --use-device-code
 
 You will be prompted to open a browser and log in with your Azure credentials. Copy the code that is displayed and paste it in the browser to authenticate.
 
-You will also need to install the **aks-preview** and **k8s-extension** extensions to leverage preview features in AKS and install AKS extensions.
+You will also need to install the **aks-preview** and **k8s-extension** extensions to leverage preview features in AKS and install AKS extensions. Run the following commands to install the extensions.
 
 ```bash
 az extension add --name aks-preview
@@ -77,17 +77,17 @@ Finally set the default location for resources that you will create in this lab 
 az configure --defaults location=$(az group show -n myresourcegroup --query location -o tsv)
 ```
 
-You are now ready to get started with the lab.
+You are now ready to get started with the lab!
 
 ===
 
 ## Security and governance
 
-Security above all else! The AKS Automatic cluster is configured with Azure Role-Based Access Control (RBAC) authentication and authorization, Azure Policy, and Deployment Safeguards enabled out of the box. This section aims to get AKS operators comfortable with administering user access to the AKS cluster, ensuring security best practices with Azure Policy and Deployment Safeguards.
+Being able to manage user access to the AKS cluster and enforce policies is critical to maintaining a secure and compliant environment. In this section, you will learn how to grant permissions to the AKS cluster, enforce policies with AKS Deployment Safeguards, and enforce custom policies with Azure Policy.
 
 ### Granting permissions to the AKS cluster
 
-With [Azure RBAC for Kubernetes authorization](https://learn.microsoft.com/azure/aks/manage-azure-rbac?tabs=azure-cli) enabled on the AKS cluster granting users access to the cluster is as simple as assigning roles to users, groups, and/or service principals. Users will need to run the normal **az aks get-credentials** command to download the kubeconfig file, but when users attempt to execute commands against the Kubernetes API Server, they will be instructed to log in with their Microsoft Entra ID credentials and their assigned roles will determine what they can do within the cluster.
+With [Azure RBAC for Kubernetes authorization](https://learn.microsoft.com/azure/aks/manage-azure-rbac?tabs=azure-cli) enabled on the AKS Automatic cluster, granting users access to the cluster is as simple as assigning roles to users, groups, and/or service principals. Users will run the normal **az aks get-credentials** command to download the [kubeconfig file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/), but when users attempt to execute commands against the Kubernetes API Server, they will be instructed to log in with their Microsoft Entra ID credentials and their assigned roles will determine what they can do within the cluster.
 
 To grant permissions to the AKS cluster, you will need to assign an Azure role. The following built-in roles are available for user assignment.
 
@@ -96,7 +96,7 @@ To grant permissions to the AKS cluster, you will need to assign an Azure role. 
 - [Azure Kubernetes Service RBAC Reader](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/containers#azure-kubernetes-service-rbac-reader)
 - [Azure Kubernetes Service RBAC Writer](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/containers#azure-kubernetes-service-rbac-writer)
 
-In your shell, run the following command to get the AKS cluster credentials
+In your shell, run the following command to get the AKS cluster credentials.
 
 ```bash
 az aks get-credentials \
@@ -104,16 +104,18 @@ az aks get-credentials \
 --name myakscluster
 ```
 
-A Kubernetes [Namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/) is a way to isolate resources in a cluster and is common practice to create namespaces for different teams or environments. Run the following command to create a namespace for the dev team to use.
+A Kubernetes [namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/) is often used to isolate resources in a cluster and is common practice to create namespaces for different teams or environments. Run the following command to create a namespace for the dev team to use.
 
 ```bash
 kubectl create namespace dev
 ```
 
-Since this is the first time you are running a kubectl command, you will be prompted to log in against Microsoft Entra ID. Follow the same login process you went through to login into your Azure subscription. After you've successfully logged in, the command to create the namespace should be successful.
+Since this is the first time you are running a [kubectl](https://kubernetes.io/docs/reference/kubectl/) command, you will be prompted to log in against Microsoft Entra ID.
 
-> [!HINT]
-> The kubelogin plugin is used to authenticate with Microsoft Entra ID and can be easily installed with the following command: **az aks install-cli**. So if you run into an error when trying to log in, you may need to install the plugin.
+Follow the same login process you went through to login into your Azure subscription. After you've successfully logged in, the command to create the namespace should be successful.
+
+> [!HELP]
+> If you run into an error when trying to log in, you may need to install the [kubelogin](https://github.com/Azure/kubelogin) plugin which is used to authenticate with Microsoft Entra ID. It can be easily installed with the following command: **az aks install-cli**.
 
 Run the following command to get the AKS cluster's resource ID.
 
@@ -143,7 +145,7 @@ az role assignment create \
 --scope $AKS_ID/namespaces/dev
 ```
 
-When you logged in to access the Kubernetes API via the kubectl command, you were prompted to log in with your Microsoft Entra ID. The kubelogin plugin stored the OIDC token in the **~/.kube/cache/kubelogin** directory. In order to quickly test the permissions of a different user, we can simply move the JSON file to a different directory.
+When you logged in to access the Kubernetes API via the kubectl command, you were prompted to log in with your Microsoft Entra ID. The kubelogin plugin stores the OIDC token in the **~/.kube/cache/kubelogin** directory. In order to quickly test the permissions of a different user, we can simply move the JSON file to a different directory.
 
 Run the following command to move the cached credentials to its parent directory.
 
@@ -151,21 +153,23 @@ Run the following command to move the cached credentials to its parent directory
 mv ~/.kube/cache/kubelogin/*.json ~/.kube/cache/
 ```
 
-Now, run the following command to get the dev namespace. This trigger a new authentication prompt. Proceed to log in with the developer's user account.
+Now, run the following command to get the dev namespace.
 
 ```bash
 kubectl get namespace dev
 ```
 
-After logging in, head back to your terminal. You should see the **dev** namespace, its status and age. This means that the developer has the necessary permissions to access the **dev** namespace.
+Since there is no cached token in the kubelogin directory, this will trigger a new authentication prompt. Proceed to log in with the developer's user account.
 
-Run the following command to check to see if the current user can create a pod in the **dev** namespace.
+After logging in, head back to your terminal. You should see details of the **dev** namespace. This means that the dev user has the necessary permissions to access the **dev** namespace.
+
+Run the following command to check to see if the dev user can create a pod in the **dev** namespace.
 
 ```bash
 kubectl auth can-i create pods --namespace dev
 ```
 
-You should see the output **yes**. This means the developer has the necessary permissions to create pods in the **dev** namespace.
+You should see the output **yes**. This means the dev user has the necessary permissions to create pods in the **dev** namespace.
 
 Let's put this to the test and deploy a sample application in the assigned namespace using Helm.
 
@@ -175,7 +179,7 @@ Run the following command to add the Helm repository for the AKS Store Demo appl
 helm repo add aks-store-demo https://azure-samples.github.io/aks-store-demo
 ```
 
-Run the following command to install the AKS Store Demo application in the **dev** namespace.
+Run the following command to install the [AKS Store Demo](https://github.com/azure-samples/aks-store-demo) application in the **dev** namespace.
 
 ```bash
 helm install demo aks-store-demo/aks-store-demo-chart \
@@ -185,17 +189,19 @@ helm install demo aks-store-demo/aks-store-demo-chart \
 
 The helm install command should show a status of "deployed". This means that the application has successfully deployed in the **dev** namespace. It will take a few minutes to deploy, so let's move on.
 
-Finally, let's check to see if the developer can create a pod outside of their assigned namespace. Run the following command to test against the **default** namespace.
+Finally, check to see if the developer can create a pod outside of the dev namespace. Run the following command to test against the **default** namespace.
 
 ```bash
 kubectl auth can-i create pods --namespace default
 ```
 
-You should see the output **no - User does not have access to the resource in Azure. Update role assignment to allow access**. This is exactly what we want to see. If you need to grant the user access to another namespace, you can simply assign the role to the user with the appropriate scope. Or if you need to grand a user access to the entire cluster, you can assign the role to the user with the scope of the AKS cluster and omit the namespace altogether.
+You should see the output **no - User does not have access to the resource in Azure. Update role assignment to allow access**.
+
+This is exactly what we want to see. If you need to grant the user access to another namespace, you can simply assign the role to the user with the appropriate scope. Or if you need to grand a user access to the entire cluster, you can assign the role to the user with the scope of the AKS cluster and omit the namespace altogether.
 
 Great job! You now know how to manage user access to the AKS cluster and how to scope permissions to specific namespaces.
 
-> [!IMPORTANT]
+> [!ALERT]
 > After testing the permissions, delete the developer user's cached credentials, then move the admin user's cached credentials back to the **~/.kube/cache/kubelogin** directory by running the following commands.
 
 ```bash
@@ -473,7 +479,7 @@ az role assignment create \
 --scope $(az keyvault show --name $KV_NAME --query id --output tsv)
 ```
 
-> [!TIP]
+> [!HINT]
 > You might be wondering "what about the role assignment for the Azure App Configuration store?" We'll get to that in the next section.
 
 ### Azure App Configuration Provider for Kubernetes
