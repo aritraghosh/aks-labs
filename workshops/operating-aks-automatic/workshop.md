@@ -411,7 +411,7 @@ For more information on how to create a policy definition from a ConstraintTempl
 
 ## Secrets and config management
 
-Developers need a way to integrate their workloads with Azure services and make the configs available to their workloads in the cluster. They also need to ensure password-less authentication with Microsoft Entra ID is leveraged as much as possible. This section aims to get you comfortable with setting up a centralized configuration store, syncing configs to the cluster as Kubernetes ConfigMaps, and setting up connectors to integrate with other Azure services.
+Azure service integration with developers requires access to configurations for their cluster workloads and leveraging password-less Microsoft Entra ID authentication wherever possible. This section guides you through centralizing configuration storage, syncing configs as Kubernetes ConfigMaps, and setting up connectors for workload integration with Azure services.
 
 [Azure Key Vault](https://learn.microsoft.com/azure/key-vault/general/overview) is a cloud service for securely storing and accessing secrets. A secret is anything that you want to tightly control access to, such as API keys, passwords, or certificates. [Azure App Configuration](https://learn.microsoft.com/azure/azure-app-configuration/overview) is a managed service that helps developers centralize their application configurations. It provides a service to store, manage, and retrieve application settings and feature flags. You can also reference secrets stored in Azure Key Vault from Azure App Configuration.
 
@@ -457,7 +457,7 @@ AC_NAME=$(az appconfig create \
 --output tsv)
 ```
 
-It's best practice to create a User-Assigned Managed Identity to access Azure resources. This identity will be used to access only data in the Azure App Configuration store and the Azure Key Vault and nothing else.
+It's best practice to create a User-Assigned Managed Identity to access Azure resources. This identity will be used to access only the data in the Azure App Configuration store and the Azure Key Vault and nothing else.
 
 ```bash
 AC_ID=$(az identity create \
@@ -487,7 +487,9 @@ az appconfig kv set-keyvault \
 --yes
 ```
 
-The Azure App Configuration store will have a reference to the secret in the Azure Key Vault and the intent is to use the user-assigned managed identity to access the secret in the key vault. However, this identity needs to be granted access to the key vault. Run the following command to allow the configuration store's managed identity to read secrets from the key vault.
+The Azure App Configuration store will have a reference to the secret in the Azure Key Vault and the intent is to use the user-assigned managed identity to access the secret in the key vault. However this identity does not have the necessary permissions yet.
+
+Run the following command to allow the configuration store's managed identity to read secrets from the key vault.
 
 ```bash
 az role assignment create \

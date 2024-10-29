@@ -9,3 +9,13 @@ Register-AzResourceProvider -ProviderNamespace "Microsoft.KubernetesConfiguratio
 Register-AzResourceProvider -ProviderNamespace "Microsoft.CognitiveServices"
 Register-AzProviderFeature -FeatureName "EnableImageIntegrityPreview" -ProviderNamespace "Microsoft.ContainerService"
 Register-AzProviderFeature -FeatureName "AKS-AzurePolicyExternalData" -ProviderNamespace "Microsoft.ContainerService"
+
+# deploy app configuration extension
+az k8s-extension create `
+  --cluster-type managedClusters `
+  --cluster-name myakscluster `
+  --resource-group myresourcegroup `
+  --name appconfigurationkubernetesprovider `
+  --extension-type Microsoft.AppConfiguration `
+  --auto-upgrade false `
+  --version 2.0.0
