@@ -43,7 +43,7 @@ The lab environment has been pre-configured for you with the following Azure res
 - [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview)
 
 > [!NOTE]
-> The Bicep template used to deploy the lab environment can be found [here](https://raw.githubusercontent.com/pauldotyu/ignite/refs/heads/main/aks.bicep)
+> The Bicep template used to deploy the lab environment can be found [here](https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/ignite/workshops/operating-aks-automatic/assets/setup/bicep/aks.bicep)
 
 You will also need the following tools:
 
@@ -211,7 +211,7 @@ mv ~/.kube/cache/*.json ~/.kube/cache/kubelogin/
 
 ### Deployment Safeguards
 
-As you unleash your developers to deploy their applications in the AKS cluster, you want to ensure that they are following best practices and policies. [Deployment Safeguards](https://learn.microsoft.com/azure/aks/deployment-safeguards) is a feature that helps enforce best practices and policies for your AKS clusters. In AKS Automatic clusters it is enabled by default and is implemented using [Azure Policy](https://learn.microsoft.com/azure/governance/policy/overview). A group of policies known as an [initiative](https://learn.microsoft.com/azure/governance/policy/concepts/initiative-definition-structure) is assigned to your cluster to monitor resources running within it are secure, compliant, and follows best practices. The compliance state of the cluster resources are reported back to Azure Policy and can be viewed in the Azure Portal.
+Before you unleash developers to deploy applications in the AKS cluster, you likely want to ensure that they are following best practices. [Deployment Safeguards](https://learn.microsoft.com/azure/aks/deployment-safeguards) is a feature that helps enforce best practices and policies for your AKS clusters. It is implemented as an AKS add-on using [Azure Policy](https://learn.microsoft.com/azure/governance/policy/overview) and enabled by default on AKS Automatic clusters. Deployment Safeguards is basically a group of policies known as an [initiative](https://learn.microsoft.com/azure/governance/policy/concepts/initiative-definition-structure) which is assigned to your cluster to monitor resources running within it are secure, compliant, and follows best practices. The compliance state of the cluster resources are reported back to Azure Policy and can be viewed in the Azure Portal.
 
 The group of policies that are included with Deployment Safeguards are documented [here](https://learn.microsoft.com/azure/aks/deployment-safeguards#deployment-safeguards-policies). Read carefully through each policy description, the targeted resource, and the mutation that can be applied when the assignment is set to **Enforcement** mode. AKS Automatic defaults to **Warning** mode which simply displays warnings in the terminal as a gentle reminder to implement best practices. You may have seen Deployment Safeguards at work when you deployed the demo application using Helm. When Deployment Safeguards is in Enforcement mode, polices will be strongly enforced by either mutating deployments to comply with the policies or denying deployments that violate policy. Therefore, it is important to understand the impact of each policy before enabling Enforcement mode.
 
@@ -236,7 +236,7 @@ These warnings are here to help remind you of the best practices that should be 
 So let's try this again with some best practices in place. Run the following command to delete the pod that was just created.
 
 ```bash
-kubectl delete pod mynginx
+kubectl delete pod mynginx --wait=false
 ```
 
 Run the following command to redeploy the pod with some best practices in place.
@@ -284,32 +284,34 @@ Head over to the Azure portal. In the search bar, type `policy` and click on **P
 
 In the **Overview** section, you will see the **AKS Deployment Safeguards Policy Assignment** in the middle of the page.
 
-Click on the policy assignment to view the compliance state of the cluster resources. You should see some of the things that were displayed in the terminal output as not being compliant.
+Click on the policy assignment to view the compliance state of the cluster resources. You should see some of the policy warnings that were displayed in the terminal output when you deployed the pod without best practices in place.
 
-Nice work! Now you know where to expect warnings and how to address some of them.
+Awesome! Now you know where to expect to see warnings both in the terminal and in the Azure and how to address some of these warnings by following best practices.
 
 ### Custom policy enforcement
 
-[Azure Policy add-on for AKS](https://learn.microsoft.com/azure/aks/use-azure-policy) has been enabled when AKS Automatic assigned Deployment Safeguards policy initiative. This means you can also leverage additional Azure Policy definitions (built-in or custom) to enforce organizational standards and compliance. When the Azure Policy for AKS feature is enabled, [Open Policy Agent (OPA) Gatekeeper](https://kubernetes.io/blog/2019/08/06/opa-gatekeeper-policy-and-governance-for-kubernetes/) is deployed in the AKS cluster. OPA Gatekeeper is a policy engine for Kubernetes that allows you to enforce policies written using [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/), a high-level declarative language. So when Azure policies are assigned to the AKS cluster, they are translated to OPA Gatekeeper [ConstraintTemplates](https://open-policy-agent.github.io/gatekeeper/website/docs/constrainttemplates/) and enforced in the cluster.
+As mentioned in the previous section, the [Azure Policy add-on for AKS](https://learn.microsoft.com/azure/aks/use-azure-policy) has been enabled when AKS Automatic is provisioned. This means you have everything you need leverage additional Azure Policy definitions (built-in or custom) to enforce organizational standards. When the Azure Policy for AKS feature is enabled, [Open Policy Agent (OPA) Gatekeeper](https://kubernetes.io/blog/2019/08/06/opa-gatekeeper-policy-and-governance-for-kubernetes/) is deployed in the AKS cluster. [Gatekeeper](https://open-policy-agent.github.io/gatekeeper) is a policy engine for Kubernetes that allows you to enforce policies written using [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/), a high-level declarative language. As Azure policies are assigned to the AKS cluster, they are translated to Gatekeeper [ConstraintTemplates](https://open-policy-agent.github.io/gatekeeper/website/docs/constrainttemplates/) and enforced in the cluster.
 
-The Gatekeeper pods are running in the **gatekeeper-system** namespace.
+The Gatekeeper pods are running in the **gatekeeper-system** namespace. Run the following command to view the pods.
 
 ```bash
 kubectl get pods -n gatekeeper-system
 ```
 
-You can also view the ConstraintTemplates that are available in the cluster.
+You can also view the ConstraintTemplates that are available in the cluster. Run the following command to view the ConstraintTemplates which have been deployed via the Azure Policy add-on for AKS.
 
 ```bash
 kubectl get constrainttemplates
 ```
 
-Although Gatekeepr is running in the cluster, it is worth noting that this Gatekeeper cannot be used outside of Azure Policy. That is, if you want to implement a well-known or commonly used ConstraintTemplates, you'll need to translate it to an Azure Policy definition and assign it to the AKS cluster. From there **azure-policy-\*** pods running in the **kube-system** namespace listens for Azure Policy assignments, translates them to ConstraintTemplates, deploys the custom Constraints (cluster policy), and reports the cluster policy results back up to Azure Policy.
+Although Gatekeepr is running in the cluster, it is worth noting that this Gatekeeper cannot be used outside of Azure Policy. That is, if you want to implement a well-known or commonly used ConstraintTemplates, you'll need to translate it to an Azure Policy definition and assign it to the AKS cluster.
+
+From there **azure-policy-\*** pods running in the **kube-system** namespace listens for Azure Policy assignments, translates them to ConstraintTemplates, deploys the custom Constraints (cluster policy), and reports the cluster policy results back up to Azure Policy.
 
 Let's illustrate this by attempting to deploy a commonly used ConstraintTemplate that limits container images to only those from approved container registries. Run the following command to attempt to deploy the ConstraintTemplate.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/pauldotyu/ignite/refs/heads/main/constrainttemplate.yaml
+kubectl apply -f https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/ignite/workshops/operating-aks-automatic/assets/files/constrainttemplate.yaml
 ```
 
 In the output you should see **This cluster is governed by Azure Policy. Policies must be created through Azure.**
@@ -340,7 +342,7 @@ In VS Code, click the **Azure Policy** icon and you should see the subscription 
 Open the VS Code terminal and run the following command download the sample ConstraintTemplate file to your local machine.
 
 ```bash
-curl -o constrainttemplate.yaml https://raw.githubusercontent.com/pauldotyu/ignite/refs/heads/main/constrainttemplate.yaml
+curl -o constrainttemplate.yaml https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/ignite/workshops/operating-aks-automatic/assets/files/constrainttemplate.yaml
 ```
 
 Open the constrainttemplate.yaml file in VS Code.
@@ -357,7 +359,7 @@ This will generate a new Azure Policy definition in the JSON format. You will ne
 The Azure Policy definition will need to be deployed using the Azure Portal. Run the following command download the sample ConstraintTemplate file to your local machine.
 
 ```bash
-curl -o constrainttemplate-as-policy.json https://raw.githubusercontent.com/pauldotyu/ignite/refs/heads/main/constrainttemplate-as-policy.json
+curl -o constrainttemplate-as-policy.json https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/ignite/workshops/operating-aks-automatic/assets/files/constrainttemplate-as-policy.json
 ```
 
 To create the policy definition and assign it to the AKS cluster, follow these steps:
