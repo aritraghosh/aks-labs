@@ -647,16 +647,16 @@ Great job! You have successfully synced configurations from Azure App Configurat
 
 ## Scaling and workload scheduling
 
-One key benefit of Kubernetes is its ability to scale workloads across a pool of nodes. One key differentiator of **Kubernetes in the cloud** is its ability to scale the node pool to handle more workloads to meet user demand. This section aims to get you comfortable with scaling capabilities of AKS Automatic and understand workload scheduling best practices.
+One key benefit of Kubernetes is its ability to scale workloads across a pool of nodes. One key differentiator of running Kubernetes in the cloud is its power to dynamically scale the entire node pool to accommodate more workloads and meet user demand. This guide aims to get you comfortable with the scaling capabilities of AKS Automatic and understand best practices for workload scheduling.
 
 ### Cluster autoscaling
 
 With AKS Automatic, the [Node Autoprovision (NAP)](https://learn.microsoft.com/azure/aks/node-autoprovision?tabs=azure-cli) feature is enabled by default and will serve as the default cluster autoscaler. AKS Node Autoprovision is the Azure implementation of the [Karpenter project](https://karpenter.sh) which was developed by friends at AWS and [donated to the Cloud Native Computing Foundation (CNCF)](https://aws.amazon.com/blogs/containers/karpenter-graduates-to-beta/). In short, Karpenter is a Kubernetes controller that automates the provisioning, right-sizing, and termination of nodes in a Kubernetes cluster.
 
-> [!HINT]
+> [!NOTE]
 > The term **Node Autoprovision (NAP)** may be used interchangeably with **Karpenter** in this lab.
 
-The AKS Automatic cluster deploys a system node pool that will run all the system components; things that AKS Automatic will manage. As workloads are deployed to the cluster, NAP will automatically scale up a new node on demand. As soon as you deploy an AKS Cluster, there are no user nodes running; just the system node pool. As you deploy workloads, the NAP feature will automatically provision a new node to run the workload. Conversely, as you delete workloads, the NAP feature will automatically scale down the number of nodes to save costs. But this means that pods will remain in pending state until the newly provisioned node is ready or the workloads will be disrupted as they are moved to other nodes during consolidation events. So you need to account for this when planning for high availability for your workloads.
+When using an AKS Automatic cluster, a system node pool is automatically deployed to run essential components managed by AKS Automatic. As workloads are added or removed from the cluster, the Node Autoscaling (NAP) feature dynamically scales up or down the number of nodes to meet demand. Initially, only system nodes run in the cluster, but as workloads are deployed, NAP provisions new nodes to support them. Conversely, when workloads are deleted, NAP reduces the number of nodes to minimize costs. However, this process can leave pods in a pending state until a new node is available or cause disruptions during consolidation events. As a result, it’s essential to consider these factors when planning high availability for your workloads.
 
 There are a few key Karpenter concepts to understand when working with NAP. Let's start by understanding the following concepts:
 
@@ -872,7 +872,7 @@ With requests in place, the scheduler can make better decisions about where to p
 
 When deploying workloads to Kubernetes, it is important to ensure that your workloads are highly available and resilient to voluntary and involuntary disruptions. This is especially important when running workloads with Karpenter because nodes can be provisioned and deprovisioned automatically. There are a few best practices to follow to ensure that your workloads are highly available and resilient to disruptions.
 
-The first thing you can do is to set [PodDisruptionBudgets](https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#pod-disruption-budgets) for your workloads. PodDisruptionBudgets are used to ensure that a certain number of pods are available during maintenance or disruptions. By setting PodDisruptionBudgets, you can ensure that your workloads are not abruptly terminated during maintenance or node scale down events.
+One thing you can do is to set [PodDisruptionBudgets](https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#pod-disruption-budgets) for your workloads. PodDisruptionBudgets are used to ensure that a certain number of pods are available during maintenance or disruptions. By setting PodDisruptionBudgets, you can ensure that your workloads are not abruptly terminated during maintenance or node scale down events.
 
 The YAML spec for a PodDisruptionBudget is relatively easy to write and understand. But if you are not sure of how to write one, you can use [Microsoft Copilot for Azure](https://learn.microsoft.com/azure/copilot/overview) to generate the YAML for you.
 
