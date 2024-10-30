@@ -41,11 +41,11 @@ export async function loadWorkshop(repoPath: string, options?: LoaderOptions): P
       });
     }
 
-    markdown = replaceMarkdownTag(markdown, 'KNOWLEDGE', 'tip', 'knowledge');
-    markdown = replaceMarkdownTag(markdown, 'ALERT', 'important', 'alert');
-    markdown = replaceMarkdownTag(markdown, 'NOTE', 'task', 'note');
-    markdown = replaceMarkdownTag(markdown, 'HELP', 'warning', 'help');
-    markdown = replaceMarkdownTag(markdown, 'HINT', 'tip', 'hint');
+    markdown = replaceMarkdownTag(markdown, 'KNOWLEDGE', 'info', 'info');
+    markdown = replaceMarkdownTag(markdown, 'ALERT', 'important', 'important');
+    markdown = replaceMarkdownTag(markdown, 'NOTE', 'info', 'note');
+    markdown = replaceMarkdownTag(markdown, 'HELP', 'warning', 'warning');
+    markdown = replaceMarkdownTag(markdown, 'HINT', 'tip', 'tip');
 
     // Replace all occurrences of the @lab.CloudPortalCredential(*).Username markdown tag with a placeholder
     markdown = markdown.replace(/@lab\.CloudPortalCredential\([^)]+\)\.Username/gi, '<replace_with_dev_user_principal_name>');

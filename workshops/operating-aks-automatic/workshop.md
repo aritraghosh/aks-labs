@@ -325,12 +325,12 @@ Using the Azure Policy extension for Visual Studio Code, you can easily create a
 - Open VS Code and make sure the Azure Policy extension is installed. If not, you can install it from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=AzurePolicy.azurepolicyextension)
 - To activate the extension, press **Ctrl+Shift+P** on your keyboard to open the command palette and type **Azure: Sign in** then use the web browser to authenticate with your admin user account
 
-> [!HELP]
+> [!TIP]
 > If you see multiple sign-in options, choose the one that has **azure-account.login** next to it.
 
 - Press **Ctrl+Shift+P** again and type **Azure: Select Subscriptions** then select the subscription that contains the AKS cluster
 
-> [!HELP]
+> [!TIP]
 > If you see multiple subscriptions, choose the one that has **azure-account.selectSubscriptions** next to it.
 
 - In VS Code sidebar, click the **Azure Policy** icon and you should see the subscription resources and policies panes being loaded
@@ -353,7 +353,7 @@ curl -o constrainttemplate.yaml https://raw.githubusercontent.com/azure-samples/
 - Select the **Base64Encoded** option
 - This will generate a new Azure Policy definition in the JSON format and encode the ConstraintTemplate in Base64 format
 
-> [!NOTE]
+> [!HINT]
 > The template info can also refer to a URL where the ConstraintTemplate is hosted. This is useful when you want to reference a ConstraintTemplate that is hosted in a public repository.
 
 - Fill in details where you see the text **/_ EDIT HERE _/**
@@ -1076,11 +1076,15 @@ Let's face it. Applications will fail. Being able to quickly identify and mitiga
 
 [Microsoft Copilot for Azure](https://learn.microsoft.com/azure/copilot/overview) is a tool built into the Azure portal that enables you to diagnose and troubleshoot issues. It is not only limited to AKS but you can use it to help troubleshoot any issues with your Azure resources. The Azure Copilot provides a guided experience to lead you through the troubleshooting process and helps you understand concepts by offering explanations, suggestions, and resource URLs to learn more.
 
-Use the Azure Copilot to help you find and fix issues with your workloads.
+#### Find the issue
 
 In the Azure Portal, navigate to your AKS cluster and click on the Copilot button found at the top of the page. A panel will open on the right side of the screen and you will be presented with some suggested prompts.
 
-Ask the Copilot `how's the health of my pods?`
+Ask the Copilot:
+
+```text
+How is the health of my pods?
+```
 
 You should be presented with a kubectl command that you can run to get the status of your pods. Click the **Yes** button to execute the command from the Run command page.
 
@@ -1090,7 +1094,15 @@ Scroll through the output and see if you can spot the issue.
 
 There is a problem with the ai-service pod.
 
-Ask the Copilot `I see the the ai-service pod in the dev namespace with crashloopbackoff status. What does that mean?` The Copilot should provide you with an explanation of what the crashloopbackoff status means and how to troubleshoot it.
+#### Find the solution
+
+Ask the Copilot:
+
+```text
+I see the the ai-service pod in the dev namespace with crashloopbackoff status. What does that mean?
+```
+
+The Copilot should provide you with an explanation of what the crashloopbackoff status means and how to troubleshoot it.
 
 You were not specific with the pod name so the Copilot gave you a general command to run, so re-prompt the Copilot to restate the commands by giving it the exact pod name `The exact pod name is ai-service-xxxxx. What commands should I run again?`
 
@@ -1104,7 +1116,16 @@ It should have determined there is no Azure OpenAI service running.
 
 You go back to your dev team and they tell you that they will need an Azure OpenAI service with the GPT-3.5 Turbo model to run the ai-service pod.
 
-Ask the Copilot `How do I create an Azure OpenAI service with the GPT-3.5 Turbo model?`
+#### Implement the solution
+
+Ask the Copilot:
+
+```text
+How do I create an Azure OpenAI service with the GPT-3.5 Turbo model?
+```
+
+> [!ALERT]
+> The Azure Copilot won't always provide you with the exact commands to run but it will provide you with the necessary information to get you started.
 
 The instructions should be very close to what you need. You can either follow the instructions and/or reference the docs it replies with or you can run the following commands to quickly create an Azure OpenAI service account.
 
@@ -1132,7 +1153,7 @@ az cognitiveservices account deployment create \
 --sku-name "Standard"
 ```
 
-> [!IMPORTANT]
+> [!ALERT]
 > The model version above may not be available in your region. You can the model availability [here](https://learn.microsoft.com/azure/ai-services/openai/concepts/models?tabs=python-secure#standard-deployment-model-availability)
 
 The dev team also tells you that the ai-service pod requires a ConfigMap named **ai-service-configs** with the following environment variables to connect to the Azure OpenAI service.
@@ -1145,7 +1166,9 @@ Additionally the ai-service pod requires a Secret named **ai-service-secrets** w
 
 - **OPENAI_API_KEY** set to the API key of the Azure OpenAI service
 
-Can you complete the rest of the steps to get the ai-service pod running?
+#### Challenge
+
+Based on what you have learned so far in this lab, can you complete the rest of the steps to get the ai-service pod running?
 
 > [!HINT]
 > You can put the environment variables in the Azure App Configuration store and sync them to the Kubernetes ConfigMap. You can then update the ai-service deployment to use the ConfigMap for the environment variables.
@@ -1173,4 +1196,4 @@ Congratulations! You have completed the workshop on operating AKS Automatic. You
 
 This lab is also available at https://aka.ms/aks/labs along with others, so feel free to check them out.
 
-If you have any feedback or questions, please feel free to reach out to us at https://aka.ms/aks/feedback.
+If you have any feedback or questions on AKS in general, please feel free to reach out to us at https://aka.ms/aks/feedback.
