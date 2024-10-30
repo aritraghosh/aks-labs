@@ -43,7 +43,7 @@ The lab environment has been pre-configured for you with the following Azure res
 - [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview)
 
 > [!NOTE]
-> The Bicep template used to deploy the lab environment can be found [here](https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/ignite/workshops/operating-aks-automatic/assets/setup/bicep/aks.bicep)
+> The Bicep template used to deploy the lab environment can be found [here](https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/ignite/workshops/operating-aks-automatic/assets/setup/bicep/aks.bicep). Just note that if you deploy this template, you will need to assign yourself the "Azure Kubernetes Service RBAC Cluster Admin" role to the AKS cluster and the "Grafana Admin" role to the Azure Managed Grafana resources.
 
 You will also need the following tools:
 
@@ -503,25 +503,9 @@ az role assignment create \
 
 ### Azure App Configuration Provider for Kubernetes
 
-AKS offers an extension called the [Azure App Configuration Provider for Kubernetes](https://learn.microsoft.com/azure/aks/azure-app-configuration?tabs=cli) that allows you to sync configurations from Azure App Configuration to Kubernetes ConfigMaps. This extension is not installed by default in AKS Automatic clusters, so you will need to install it manually.
+AKS offers an extension called the [Azure App Configuration Provider for Kubernetes](https://learn.microsoft.com/azure/aks/azure-app-configuration?tabs=cli) that allows you to sync configurations from Azure App Configuration to Kubernetes ConfigMaps. This extension is not installed by default in AKS Automatic clusters, so you will need to install it manually. To save you some time in this lab, the extension has been pre-installed in the AKS Automatic cluster for you.
 
-Run the following command to install the Azure App Configuration Provider for Kubernetes extension.
-
-```bash
-az k8s-extension create \
---cluster-type managedClusters \
---cluster-name myakscluster \
---resource-group myresourcegroup \
---name appconfigurationkubernetesprovider \
---extension-type Microsoft.AppConfiguration \
---auto-upgrade false \
---version 2.0.0
-```
-
-> [!ALERT]
-> This can take up to 5 minutes to complete.
-
-After the extension has been created, you can verify that the pods are running.
+Run the following command to verify that the Azure app config provider pods are running.
 
 ```bash
 kubectl get pods -n azappconfig-system

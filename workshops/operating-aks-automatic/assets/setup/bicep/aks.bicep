@@ -96,6 +96,19 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-03-02-previ
   }
 }
 
+resource appConfigProvider 'Microsoft.KubernetesConfiguration/extensions@2022-11-01' = {
+  scope: aksCluster
+  name: 'appconfigurationkubernetesprovider'
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    autoUpgradeMinorVersion: false
+    extensionType: 'Microsoft.AppConfiguration'
+    version: '2.0.0'
+  }
+}
+
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
   name: 'mycontainerregistry${take(uniqueString(nameSuffix), 4)}'
   location: resourceGroup().location
