@@ -2,13 +2,17 @@ apiVersion: "cilium.io/v2"
 kind: CiliumNetworkPolicy
 metadata:
   name: allow-store-front-traffic
-  namespace: default
 spec:
   endpointSelector:
     matchLabels:
       app: store-front
   ingress:
-  - fromEndpoints: []
+    - fromEntities:
+        - world # Allow external traffic to store-front via LoadBalancer.
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:
