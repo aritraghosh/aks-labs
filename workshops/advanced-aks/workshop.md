@@ -497,7 +497,63 @@ Now you can see increase in the dropped incoming traffic and the reason is "poli
 
 ACNS integrates with Hubble to provide flow logs and deep visibility into your cluster's network activity. All communications to and from pods are logged allowing you to investigate connectivity issues over time.
 
-We already have hubble installed in the cluster. check Hubble pods are running using the `kubectl get pods` command.
+But first we need to install Hubble CLI
+
+Install Hubble CLI
+
+```bash
+# Set environment variables
+export HUBBLE_VERSION=v0.11.0
+export HUBBLE_ARCH=amd64
+
+#Install Hubble CLI
+if [ "$(uname -m)" = "aarch64" ]; then HUBBLE_ARCH=arm64; fi
+curl -L --fail --remote-name-all https://github.com/cilium/hubble/releases/download/$HUBBLE_VERSION/hubble-linux-${HUBBLE_ARCH}.tar.gz{,.sha256sum}
+sha256sum --check hubble-linux-${HUBBLE_ARCH}.tar.gz.sha256sum
+sudo tar xzvfC hubble-linux-${HUBBLE_ARCH}.tar.gz /usr/local/bin
+rm hubble-linux-${HUBBLE_ARCH}.tar.gz{,.sha256sum}
+```
+
+Port forward Hubble Relay using the kubectl port-forward command.
+
+```bash
+kubectl port-forward -n kube-system svc/hubble-relay --address 127.0.0.1 4245:443
+```
+
+Configure the client with hubble certificate
+
+```bash
+#!/usr/bin/env bash
+
+set -euo pipefail
+set -x
+
+# Directory where certificates will be stored
+CERT_DIR="$(pwd)/.certs"
+mkdir -p "$CERT_DIR"
+
+declare -A CERT_FILES=(
+  ["tls.crt"]="tls-client-cert-file"
+  ["tls.key"]="tls-client-key-file"
+  ["ca.crt"]="tls-ca-cert-files"
+)
+
+for FILE in "${!CERT_FILES[@]}"; do
+  KEY="${CERT_FILES[$FILE]}"
+  JSONPATH="{.data['${FILE//./\\.}']}"
+
+# Retrieve the secret and decode it
+  kubectl get secret hubble-relay-client-certs -n kube-system -o jsonpath="${JSONPATH}" | base64 -d > "$CERT_DIR/$FILE"
+
+# Set the appropriate hubble CLI config
+  hubble config set "$KEY" "$CERT_DIR/$FILE"
+done
+
+hubble config set tls true
+hubble config set tls-server-name instance.hubble-relay.cilium.io
+```
+
+check Hubble pods are running using the `kubectl get pods` command.
 
 ```bash
 kubectl get pods -o wide -n kube-system -l k8s-app=hubble-relay
@@ -509,11 +565,6 @@ Your output should look similar to the following example output:
 hubble-relay-7ddd887cdb-h6khj     1/1  Running     0       23h
 ```
 
-First we need to port forward the hubble relay traffic
-
-```bash
-kubectl port-forward -n kube-system svc/hubble-relay --address 127.0.0.1 4245:443
-```
 
 Using hubble we will look for what is dropped
 
