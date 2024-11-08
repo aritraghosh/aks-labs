@@ -101,6 +101,8 @@ resource keyVaultAdministratorRoleAssignment 'Microsoft.Authorization/roleAssign
   }
 }
 
+// TODO: add key vault roles
+
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
   name: 'myregistry${uniqueString(subscription().id, resourceGroup().id, deployment().name)}'
   location: location
@@ -111,3 +113,5 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-pr
     type: 'SystemAssigned'
   }
 }
+
+// TODO: add acrpull and acrpush

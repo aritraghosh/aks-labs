@@ -42,40 +42,28 @@ After completing this workshop, you will be able to:
 
 ## Prerequisites
 
-Before you begin, you will need an [Azure subscription](https://azure.microsoft.com/) with permissions to create resources.
+Before you begin, you will need an [Azure subscription](https://azure.microsoft.com/) with permissions to create resources and a [GitHub account](https://github.com/signup). Using a code editor like [Visual Studio Code](https://code.visualstudio.com/) will also be helpful for editing files and running commands.
 
-<div class="info" data-title="Note">
-
-> The subscription should also have at least 32 vCPU of Standard D series quota available to create multiple AKS clusters and accommodate node surges on cluster upgrades. If you don't have enough quota, you can request an increase. Check [here](https://docs.microsoft.com/azure/azure-portal/supportability/per-vm-quota-requests) for more information.
-
-### Tools
+### Command Line Tools
 
 Most of the workshop will be done using command line tools, so you will need to have the following tools installed:
 
 - [Azure CLI](https://learn.microsoft.com/cli/azure/what-is-azure-cli)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - [Hubble CLI](https://docs.cilium.io/en/stable/observability/hubble/setup/)
+- [Notation CLI]()
 - [Git](https://git-scm.com/)
 - Bash shell (e.g. [Windows Terminal](https://www.microsoft.com/p/windows-terminal/9n0dx20hk701) with [WSL](https://docs.microsoft.com/windows/wsl/install-win10) or [Azure Cloud Shell](https://shell.azure.com))
 
 If you are unable to install these tools on your local machine, you can use the Azure Cloud Shell, which has most of the tools pre-installed.
 
-[Visual Studio Code](https://code.visualstudio.com/)
-
 ### Lab Resource Setup
 
-This workshop will require the use of multiple Azure resources such as [Azure Log Analytics](https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-overview), [Azure Managed Prometheus](https://learn.microsoft.com/azure/azure-monitor/essentials/prometheus-metrics-overview), [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview), [Azure Key Vault](https://learn.microsoft.com/azure/key-vault/general/overview), and [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro). The resource deployment can take some time, so to expedite the process, we will use a Bicep template to deploy the resources.
+This workshop will require the use of multiple Azure resources such as [Azure Log Analytics](https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-overview), [Azure Managed Prometheus](https://learn.microsoft.com/azure/azure-monitor/essentials/prometheus-metrics-overview), [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview), [Azure Key Vault](https://learn.microsoft.com/azure/key-vault/general/overview), and [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro). The resource deployment can take some time, so to expedite the process, we will use a [Bicep template](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep) to deploy the resources.
 
-Using the terminal of your choice, run the following commands to set up the workshop **.env** file which will be used to store the environment variables throughout the workshop.
+Using the terminal of your choice, run the following commands to set up the workshop **.env** file which will be used to store the environment variables throughout the workshop. If you are using the Azure Cloud Shell, you may encounter shell a time out loose environment variables. Therefore, writing your variables to an **.env** file will make it easier to reload them.
 
 Set the environment variables for the resource group name and location.
-
-```bash
-cat <<EOF > .env
-RG_NAME="myResourceGroup${RANDOM}"
-LOCATION="eastus"
-EOF
-```
 
 <div class="important" data-title="Important">
 
@@ -83,23 +71,30 @@ EOF
 
 </div>
 
+```bash
+cat <<EOF > .env
+RG_NAME="myResourceGroup"
+LOCATION="eastus"
+EOF
+```
+
 Run the following command to load the local variables into the shell.
 
 ```bash
 source .env
 ```
 
-<div class="tip" data-title="Tip">
-
-> If you are using the Azure Cloud Shell, you may encounter shell a time out loose environment variables. Therefore, writing your variables to an **.env** file will make it easier to reload them.
-
-</div>
-
 Run the following command and follow the prompts to log in to your Azure account using the Azure CLI.
 
 ```bash
 az login --use-device-code
 ```
+
+<div class="tip" data-title="Tip">
+
+> If you are logging into a different tenant, you can use the **--tenant** flag to specify the tenant domain or tenant ID.
+
+</div>
 
 Run the following command to create a resource group.
 
@@ -115,7 +110,13 @@ Run the following command to download the Bicep template file to deploy the lab 
 curl -o main.bicep https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/advanced-aks/workshops/advanced-aks/assets/main.bicep
 ```
 
-Run the following command to save the user object ID to a variable.
+Verify the contents of the **main.bicep** file by running the following command.
+
+```bash
+cat main.bicep
+```
+
+Run the following command to save your user object ID to a variable, save it to the **.env** file, and reload the environment variables.
 
 ```bash
 cat <<EOF >> .env
@@ -124,7 +125,7 @@ EOF
 source .env
 ```
 
-Run the following command to deploy the resources into the resource group.
+Run the following command to deploy Bicep template into the resource group.
 
 ```bash
 az deployment group create \
@@ -148,6 +149,12 @@ Before you deploy an AKS cluster, it's essential to consider its size based on y
 
 When it comes to considering the size of the node, it is important to understand the types of Virtual Machines (VMs) available in Azure; their characteristics, such as CPU, memory, and disk, and ultimate the SKU that best fits your workload requirements. See the [Azure VM sizes](https://learn.microsoft.com/azure/virtual-machines/sizes/overview) documentation for more information.
 
+<div class="info" data-title="Note">
+
+> In your Azure subscription, you will need to make sure to have at least 32 vCPU of Standard D series quota available to create multiple AKS clusters and accommodate node surges on cluster upgrades. If you don't have enough quota, you can request an increase. Check [here](https://docs.microsoft.com/azure/azure-portal/supportability/per-vm-quota-requests) for more information.
+
+</div>
+
 ### System and User Node Pools
 
 When an AKS cluster is created, a single node pool is created. The single node pool will run Kubernetes system components required to run the Kubernetes control plane. It is recommended to create a separate node pool for user workloads. This separation allows you to manage system and user workloads independently.
@@ -168,11 +175,11 @@ Before you create the AKS cluster, run the following command to install the aks-
 az extension add --name aks-preview
 ```
 
-Run the following command to set a name for the AKS cluster, store it in the **.env** file and load the environment variables.
+Run the following command to set a name for the AKS cluster, save it to the **.env** file, and reload the environment variables.
 
 ```bash
 cat <<EOF >> .env
-AKS_NAME="myAKSCluster${RANDOM}"
+AKS_NAME="myAKSCluster"
 EOF
 source .env
 ```
@@ -221,7 +228,8 @@ Once the AKS cluster has been created, run the following command to connect to t
 ```bash
 az aks get-credentials \
 --resource-group ${RG_NAME} \
---name ${AKS_NAME}
+--name ${AKS_NAME} \
+--overwrite-existing
 ```
 
 ### Adding a User Node Pool
@@ -263,13 +271,15 @@ Monitoring and logging are essential for maintaining the health and performance 
 
 The Bicep template that was deployed earlier should be completed by now. All you need to do next is enable [metrics monitoring](https://learn.microsoft.com/azure/azure-monitor/containers/kubernetes-monitoring-enable?tabs=cli) and on the cluster by linking the monitoring resources to the AKS cluster.
 
-Run the following commands to get the resource group name for the monitoring resources and reload the environment variables.
+Run the following commands to get the resource IDs for the resources that were created, save them to the **.env** file, and reload the environment variables.
 
 ```bash
 cat <<EOF >> .env
 MONITOR_ID="$(az monitor account list -g $RG_NAME --query "[0].id" -o tsv)"
 GRAFANA_ID="$(az grafana list -g $RG_NAME --query "[0].id" -o tsv)"
 LOGS_ID="$(az monitor log-analytics workspace list -g $RG_NAME --query "[0].id" -o tsv)"
+AKV_NAME="$(az keyvault list --resource-group $RG_NAME --query "[0].name" -o tsv)"
+AKV_ID="$(az keyvault show --name $AKV_NAME --query "id" -o tsv)"
 EOF
 source .env
 ```
@@ -280,7 +290,7 @@ source .env
 
 </div>
 
-Run the following command to enable metrics monitoring.
+Run the following command to enable metrics monitoring on the AKS cluster.
 
 ```bash
 az aks update \
@@ -292,18 +302,22 @@ az aks update \
 --no-wait
 ```
 
-Run the following command to enable container logging.
+Run the following command to enable the monitoring addon which will enable logging to the Azure Log Analytics workspace from the AKS cluster.
 
 ```bash
 az aks enable-addons \
 --resource-group ${RG_NAME} \
 --name ${AKS_NAME} \
 --addon monitoring \
---workspace-resource-id ${LOGS_ID}
+--workspace-resource-id ${LOGS_ID} \
 --no-wait
 ```
 
-More on full stack monitoring on AKS can be found [here](https://learn.microsoft.com/azure/azure-monitor/containers/monitor-kubernetes)
+<div class="info" data-title="Note">
+
+> More on full stack monitoring on AKS can be found [here](https://learn.microsoft.com/azure/azure-monitor/containers/monitor-kubernetes)
+
+</div>
 
 ### Deploying the AKS Store Demo Application
 
@@ -317,6 +331,10 @@ The application has the following services:
 | order-service   | This service is used for placing orders (Javascript)               |
 | product-service | This service is used to perform CRUD operations on products (Rust) |
 | rabbitmq        | RabbitMQ for an order queue                                        |
+
+Here is a high-level architecture of the application:
+
+![AKS store demo architecture](./assets/aks-store-architecture.png)
 
 Run the following command to create a namespace for the application.
 
@@ -344,7 +362,7 @@ kubectl get svc store-front -n pets
 
 Copy the **EXTERNAL-IP** of the **store-front** service to your browser to access the application.
 
-![Alt Text](assets/ACNS-Pets_App.png)
+![AKS Store Demo sample app](assets/acns-pets-app.png)
 
 <div class="tip" data-title="Congratulations!">
 
@@ -360,6 +378,8 @@ Copy the **EXTERNAL-IP** of the **store-front** service to your browser to acces
 
 ## Advanced Networking Concepts
 
+TODO: Add content about Azure CNI Overlay with Cilium
+
 ### Advanced Container Networking Services
 
 Advanced Container Networking Services (ACNS) is a suite of services built to significantly enhance the operational capabilities of your Azure Kubernetes Service (AKS) clusters.
@@ -374,22 +394,55 @@ In this section, we’ll apply network policies to control traffic flow to and f
 
 #### Test Connectivity
 
-By default all traffic is allowed in kubernetes. Do the following test to make sure that all traffic is allowed by default
+Do the following test to make sure that all traffic is allowed by default
+
+Run the following command to test a connection to an external website from the order-service pod.
 
 ```bash
-# testing connection with external world
-kubectl exec -it $(kubectl get po -l app=order-service -ojsonpath='{.items[0].metadata.name}')  -- sh -c 'wget www.bing.com'
-
-# testing connection between order-service product-service which is not required by architecture
-kubectl exec -it $(kubectl get po -l app=order-service -ojsonpath='{.items[0].metadata.name}')  -- sh -c 'nc -zv -w2 product-service.default 3002'
+kubectl exec -n pets -it $(kubectl get po -n pets -l app=order-service -ojsonpath='{.items[0].metadata.name}') -c order-service -- sh -c 'wget --spider www.bing.com'
 ```
+
+You should see output similar to the following:
+
+```text
+Connecting to www.bing.com (13.107.21.237:80)
+remote file exists
+```
+
+Now test the connection between the order-service and product-service pods which is allowed but not required by the architecture.
+
+```bash
+kubectl exec -n pets -it $(kubectl get po -n pets -l app=order-service -ojsonpath='{.items[0].metadata.name}') -c order-service  -- sh -c 'nc -zv -w2 product-service 3002'
+```
+
+You should see output similar to the following:
+
+```text
+product-service (10.0.96.101:3002) open
+```
+
+In both tests, the connection was successful. This is because all traffic is allowed by default in Kubernetes.
 
 #### Deploy Network Policy
 
-Now, let's deploy some network policy to allow only the required ports in the default namespace.
+Now, let's deploy some network policy to allow only the required ports in the pets namespace.
+
+Run the following command to download the network policy manifest file.
 
 ```bash
-kubectl apply -f assets/network_policy.yaml
+curl -o acns-network-policy.yaml https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/advanced-aks/workshops/advanced-aks/assets/acns-network-policy.yaml
+```
+
+Take a look at the network policy manifest file by running the following command.
+
+```bash
+cat acns-network-policy.yaml
+```
+
+Apply the network policy to the pets namespace.
+
+```bash
+kubectl apply -n pets -f acns-network-policy.yaml
 ```
 
 #### Verify Policies
@@ -397,34 +450,61 @@ kubectl apply -f assets/network_policy.yaml
 Review the created policies using the following command
 
 ```bash
-kubectl get cnp
+kubectl get cnp -n pets
 ```
 
-Ensure that only allowed connections succeed and others are blocked.
-For example, order-service should not be able to access www.bing.com or the product-service.
+Ensure that only allowed connections succeed and others are blocked. For example, order-service should not be able to access www.bing.com or the product-service.
+
+Run the following command to test the connection to www.bing.com from the order-service pod.
 
 ```bash
-# testing connection with external world
-kubectl exec -it $(kubectl get po -l app=order-service -ojsonpath='{.items[0].metadata.name}')  -- sh -c 'wget www.bing.com'
-
-# testing connection between order-service product-service which is not required by architecture
-kubectl exec -it $(kubectl get po -l app=order-service -ojsonpath='{.items[0].metadata.name}')  -- sh -c 'nc -zv -w2 product-service.default 3002'
+kubectl exec -n pets -it $(kubectl get po -n pets -l app=order-service -ojsonpath='{.items[0].metadata.name}') -c order-service -- sh -c 'wget --spider --timeout=1 --tries=1 www.bing.com'
 ```
 
-At the same time, we should be able to access the pet shop app UI and order product normally.
+You should see output similar to the following:
 
-### Configuring FQDN Filtering using ACNS
+```text
+wget: bad address 'www.bing.com'
+command terminated with exit code 1
+```
 
-In this section, we’ll apply FQDN-based network policies to control outbound access to specific domains. This ACNS feature is only enabled for clusters using Azure CNI Powered by Cilium.
+Run the following command to test the connection between the order-service and product-service pods.
 
-**Goal:** The application Owner is asking to allow the order-service to contact Microsoft Graph API.
+```bash
+kubectl exec -n pets -it $(kubectl get po -n pets -l app=order-service -ojsonpath='{.items[0].metadata.name}') -c order-service  -- sh -c 'nc -zv -w2 product-service 3002'
+```
+
+You should see output similar to the following:
+
+```text
+nc: bad address 'product-service'
+command terminated with exit code 1
+```
+
+We've just enforced network policies to control traffic flow to and from pods within the demo application. At the same time, we should be able to access the pet shop app UI and order product normally.
+
+### Configuring FQDN Filtering
+
+Using network policies, you can control traffic flow to and from your AKS cluster. This is traditionally been enforced based on IP addresses and ports. But what if you want to control traffic based on fully qualified domain names (FQDNs)? What if an application owner asks you to allow traffic to a specific domain like Microsoft Graph API?
+
+This is where FQDN filtering comes in.
+
+<div class="info" data-title="Note">
+
+> FQDN filtering is only available for clusters using Azure CNI Powered by Cilium.
+
+</div>
+
+Let's explore how we can apply FQDN-based network policies to control outbound access to specific domains.
 
 #### Test Connectivity
 
-Let's start with testing the connection from the `order service` to Microsoft Graph
+Let's start with testing the connection from the order-service to see if it can contact the Microsoft Graph API endpoint.
+
+Run the following command to test the connection to the Microsoft Graph API from the order-service pod.
 
 ```bash
-kubectl exec -it $(kubectl get po -l app=order-service -ojsonpath='{.items[0].metadata.name}')  -- sh -c 'wget https://graph.microsoft.com'
+kubectl exec -n pets -it $(kubectl get po -n pets -l app=order-service -ojsonpath='{.items[0].metadata.name}') -c order-service  -- sh -c 'wget --spider --timeout=1 --tries=1 https://graph.microsoft.com'
 ```
 
 As you can see the traffic is denied. This is an expected behavior because we have implemented zero trust security policy and denying any unwanted traffic.
@@ -439,8 +519,20 @@ To limit egress to certain domains, apply an FQDN policy. This policy permits ac
 
 </div>
 
+Run the following command to download the FQDN policy manifest file.
+
 ```bash
-kubectl apply -f assets/fqdn_policy.yaml
+curl -o acns-network-policy-fqdn.yaml https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/advanced-aks/workshops/advanced-aks/assets/acns-network-policy-fqdn.yaml
+```
+
+Take a look at the FQDN policy manifest file by running the following command.
+
+```bash
+cat acns-network-policy-fqdn.yaml
+```
+
+```bash
+kubectl apply -n pets -f acns-network-policy-fqdn.yaml
 ```
 
 #### Verify FQDN Policy Enforcement
@@ -448,49 +540,75 @@ kubectl apply -f assets/fqdn_policy.yaml
 Now if we try to access Microsoft Graph API from order-service app, that should be allowed.
 
 ```bash
-kubectl exec -it $(kubectl get po -l app=order-service -ojsonpath='{.items[0].metadata.name}')  -- sh -c 'wget https://graph.microsoft.com'
+kubectl exec -n pets -it $(kubectl get po -n pets -l app=order-service -ojsonpath='{.items[0].metadata.name}') -c order-service  -- sh -c 'wget --spider --timeout=1 --tries=1 https://graph.microsoft.com'
+```
+
+You should see output similar to the following:
+
+```text
+Connecting to graph.microsoft.com (20.190.152.88:443)
+Connecting to developer.microsoft.com (23.45.149.11:443)
+Connecting to developer.microsoft.com (23.45.149.11:443)
+remote file exists
 ```
 
 ### Monitoring Advanced Network Metrics and Flows
 
-With Grafana provided by ACNS, you can visualize real-time data and gain insights into network traffic patterns, performance, and policy effectiveness.
+Advanced Container Networking Services (ACNS) provides deep visibility into your cluster's network activity. This includes flow logs and deep visibility into your cluster's network activity. All communications to and from pods are logged, allowing you to investigate connectivity issues over time
 
-Goal: Customer reported a problem in accessing the pets shop. We need to fix this issue
+Using Azure Managed Grafana, you can visualize real-time data and gain insights into network traffic patterns, performance, and policy effectiveness.
+
+What if a customer reports a problem in accessing the pets shop? How can you troubleshoot the issue?
+
+We'll work to simulate a problem and then use ACNS to troubleshoot the issue.
 
 #### Introducing Chaos to Test container networking
 
-Let's start with applying the chaos policy to generate some drop traffic
+Let's start by applying a new network policy to cause some chaos in the network. This policy will drop incoming traffic to the store-front service.
+
+Run the following command to download the chaos policy manifest file.
 
 ```bash
-kubectl apply -f assets/chaos_policy.yaml
+curl -o acns-network-policy-chaos.yaml https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/advanced-aks/workshops/advanced-aks/assets/acns-network-policy-chaos.yaml
+```
+
+Run the following command to examine the chaos policy manifest file.
+
+```bash
+cat acns-network-policy-chaos.yaml
+```
+
+Run the following command to apply the chaos policy to the pets namespace.
+
+```bash
+kubectl apply -n pets -f acns-network-policy-chaos.yaml
 ```
 
 #### Access Grafana Dashboard
 
-ACNS metrics provide insights into traffic volume, dropped packets, number of connections, etc. The metrics are stored in Prometheus format and, as such, you can view them in Grafana.
-Let's use grafana dashboard to see what's wrong
+When you enabled Advanced Container Networking Services (ACNS) on your AKS cluster, you also enabled metrics collection. These metrics provide insights into traffic volume, dropped packets, number of connections, etc. The metrics are stored in Prometheus format and, as such, you can view them in Grafana.
 
-From your browser, navigate to [Azure Portal](https://aka.ms/publicportal), search for **grafana** resource, then click on the endpoint link
+Using your browser, navigate to [Azure Portal](https://aka.ms/publicportal), search for **grafana** resource, then click on the **Azure Managed Grafana** link under the **Services** section. Locate the Azure Managed Grafana resource that was created earlier in the workshop and click on it, then click on the URL next to **Endpoint** to open the Grafana dashboard.
 
-![Alt Text](assets/ACNS-az_grafana.png)
+![Azure Managed Grafana overview](assets/acns-grafana-overview.png)
 
 Part of ACNS we provide pre-defined networking dashboards. Review the available dashboards
 
-![Alt Text](assets/ACNS-grafana_dashboards.png)
+![ACNS dashboards in Grafana](assets/acns-grafana-dashboards.png)
 
 You can start with the **Kubernetes / Networking / Clusters** dashboard to get an over view of whats is happening in the cluster.
 
-![Alt Text](assets/ACNS-network_clusters_dashboard.png)
+![ACNS networking clusters dashboard](assets/acns-network-clusters-dashboard.png)
 
 Lets' change the view to the **Kubernetes / Networking / Drops**, select the **pets** namespace, and **store-front** workload
 
-![Alt Text](assets/ACNS-dropps_incoming_traffic.png)
+![ACNS networking drops dashboard](assets/acns-drops-incoming-traffic.png)
 
 Now you can see increase in the dropped incoming traffic and the reason is "policy_denied" so now we now the reason that something was wrong with the network policy. let's dive dipper and understand why this is happening
 
 [Optional] Familiarize yourself with the other dashboards for DNS, and pod flows
 
-| ![DNS Dashboard](assets/ACNS-DNS_Dashboard.png) | ![Pod Flows Dashboard](assets/ACNS-pod-flows-dashboard.png) |
+| ![DNS Dashboard](assets/acns-dns-dashboard.png) | ![Pod Flows Dashboard](assets/acns-pod-flows-dashboard.png) |
 | ----------------------------------------------- | ----------------------------------------------------------- |
 
 #### Observe network flows with hubble
@@ -503,15 +621,16 @@ Install Hubble CLI
 
 ```bash
 # Set environment variables
-export HUBBLE_VERSION=v0.11.0
-export HUBBLE_ARCH=amd64
+export HUBBLE_VERSION="v0.11.0"
+export HUBBLE_OS="$(uname | tr '[:upper:]' '[:lower:]')"
+export HUBBLE_ARCH="$(uname -m)"
 
 #Install Hubble CLI
-if [ "$(uname -m)" = "aarch64" ]; then HUBBLE_ARCH=arm64; fi
-curl -L --fail --remote-name-all https://github.com/cilium/hubble/releases/download/$HUBBLE_VERSION/hubble-linux-${HUBBLE_ARCH}.tar.gz{,.sha256sum}
-sha256sum --check hubble-linux-${HUBBLE_ARCH}.tar.gz.sha256sum
-sudo tar xzvfC hubble-linux-${HUBBLE_ARCH}.tar.gz /usr/local/bin
-rm hubble-linux-${HUBBLE_ARCH}.tar.gz{,.sha256sum}
+if [ "$(uname -m)" = "aarch64" ]; then HUBBLE_ARCH="arm64"; fi
+curl -L --fail --remote-name-all https://github.com/cilium/hubble/releases/download/${HUBBLE_VERSION}/hubble-${HUBBLE_OS}-${HUBBLE_ARCH}.tar.gz{,.sha256sum}
+sha256sum --check hubble-${HUBBLE_OS}-${HUBBLE_ARCH}.tar.gz.sha256sum
+sudo tar xzvfC hubble-${HUBBLE_OS}-${HUBBLE_ARCH}.tar.gz /usr/local/bin
+rm hubble-${HUBBLE_OS}-${HUBBLE_ARCH}.tar.gz{,.sha256sum}
 ```
 
 Port forward Hubble Relay using the kubectl port-forward command.
@@ -519,6 +638,8 @@ Port forward Hubble Relay using the kubectl port-forward command.
 ```bash
 kubectl port-forward -n kube-system svc/hubble-relay --address 127.0.0.1 4245:443
 ```
+
+Move the port forward to the background by pressing **Ctrl + z** and then type `bg`.
 
 Configure the client with hubble certificate
 
@@ -542,10 +663,10 @@ for FILE in "${!CERT_FILES[@]}"; do
   KEY="${CERT_FILES[$FILE]}"
   JSONPATH="{.data['${FILE//./\\.}']}"
 
-# Retrieve the secret and decode it
+  # Retrieve the secret and decode it
   kubectl get secret hubble-relay-client-certs -n kube-system -o jsonpath="${JSONPATH}" | base64 -d > "$CERT_DIR/$FILE"
 
-# Set the appropriate hubble CLI config
+  # Set the appropriate hubble CLI config
   hubble config set "$KEY" "$CERT_DIR/$FILE"
 done
 
@@ -553,7 +674,7 @@ hubble config set tls true
 hubble config set tls-server-name instance.hubble-relay.cilium.io
 ```
 
-check Hubble pods are running using the `kubectl get pods` command.
+Check Hubble pods are running using the `kubectl get pods` command.
 
 ```bash
 kubectl get pods -o wide -n kube-system -l k8s-app=hubble-relay
@@ -562,11 +683,11 @@ kubectl get pods -o wide -n kube-system -l k8s-app=hubble-relay
 Your output should look similar to the following example output:
 
 ```text
-hubble-relay-7ddd887cdb-h6khj     1/1  Running     0       23h
+NAME                            READY   STATUS    RESTARTS   AGE    IP            NODE                                 NOMINATED NODE   READINESS GATES
+hubble-relay-7ff97868ff-tvwcf   1/1     Running   0          101m   10.244.2.57   aks-systempool-10200747-vmss000000   <none>           <none>
 ```
 
-
-Using hubble we will look for what is dropped
+Using hubble we will look for what is dropped.
 
 ```bash
 hubble observe --verdict DROPPED
@@ -574,36 +695,60 @@ hubble observe --verdict DROPPED
 
 Here we can see traffic coming from world dropped in store-front
 
-![Alt Text](assets/ACNS-hubble_cli.png)
+![Hubble CLI](assets/acns-hubble-cli.png)
 
 So now we can tell that there is a problem with the frontend ingress traffic configuration, let's review the `allow-store-front-traffic` policy
 
 ```bash
-kubectl describe cnp allow-store-front-traffic
+kubectl describe -n pets cnp allow-store-front-traffic
 ```
 
 Here we go, we see that the Ingress traffic is not allowed
 
-![Alt Text](assets/ACNS-policy_output.png)
+![Ingress traffic not allowed](assets/acns-policy-output.png)
 
-Now to solve the problem we will apply the original
+Now to solve the problem we will apply the original policy.
+
+Run the following command to apply the original network policy to the pets namespace.
 
 ```bash
-kubectl apply -f assets/allow-store-front-traffic.yaml
+curl -o acns-network-policy-allow-store-front-traffic.yaml https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/advanced-aks/workshops/advanced-aks/assets/acns-network-policy-allow-store-front-traffic.yaml
 ```
 
-And finally our pets applications back to live
+View the contents of the network policy manifest file.
 
-![Alt Text](assets/ACNS-Pets_App.png)
+```bash
+cat acns-network-policy-allow-store-front-traffic.yaml
+```
 
-### Configure Hubble UI to visualize traffic
+Apply the network policy to the pets namespace.
+
+```bash
+kubectl apply -n pets -f acns-network-policy-allow-store-front-traffic.yaml
+```
+
+You should now see the traffic flowing again and you are able to access the pets shop app UI.
+
+### Visualize traffic with Hubble UI
 
 #### Install Hubble UI
+
+Run the following command to download the Hubble UI manifest file.
+
+```bash
+curl -o acns-hubble-ui.yaml https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/advanced-aks/workshops/advanced-aks/assets/acns-hubble-ui.yaml
+```
+
+Optionally, run the following command to take a look at the Hubble UI manifest file.
+
+```bash
+cat acns-hubble-ui.yaml
+```
 
 Apply the hubble-ui.yaml manifest to your cluster, using the following command
 
 ```bash
-kubectl apply -f assets/hubble_UI.yaml
+kubectl apply -f acns-hubble-ui.yaml
 ```
 
 #### Forward Hubble Relay Traffic
@@ -618,9 +763,19 @@ kubectl -n kube-system port-forward svc/hubble-ui 12000:80
 
 Access Hubble UI by entering http://localhost:12000/ into your web browser.
 
-![Alt Text](assets/ACNS-Hubble_UI.png)
+![Accessing the Hubble UI](assets/acns-hubble-ui.png)
 
 ### Istio Service Mesh
+
+<div class="important" data-title="Important">
+
+> If you have implemented the CiliumNetworkPolicy manifests from the previous sections, you will need to remove them with the following command before proceeding with the Istio service mesh.
+>
+> ```bash
+> kubectl delete ciliumnetworkpolicy -n pets --all
+> ```
+
+</div>
 
 Istio is an open-source service mesh that layers transparently onto existing distributed applications. Istio’s powerful features provide a uniform and more efficient way to secure, connect, and monitor services. Istio enables load balancing, service-to-service authentication, and monitoring – with few or no service code changes. Its powerful control plane brings vital features, including:
 
@@ -666,7 +821,7 @@ Once in the `istio` directory, create the `akslab-certs` directory and navigate 
 
 ```bash
 mkdir -p akslab-certs
-pushd certs
+pushd akslab-certs
 ```
 
 Generate the root certificate and key.
@@ -749,15 +904,17 @@ az aks mesh get-revisions \
 
 You should see the available revisions for the AKS Istio add-on and the compatible versions of Kubernetes they support.
 
-Run the following command to enable the default supported revision of the AKS Istio add-on for the AKS cluster, using the CA certficate infromation creted earlier.
+Run the following command to enable the default supported revision of the AKS Istio add-on for the AKS cluster, using the CA certificate information created earlier.
 
 ```bash
-az aks mesh enable --resource-group ${RG_NAME} --name ${AKS_NAME} \
+az aks mesh enable \
+--resource-group ${RG_NAME} \
+--name ${AKS_NAME} \
+--key-vault-id ${AKV_ID} \
 --root-cert-object-name istio-root-cert \
 --ca-cert-object-name istio-intermediat-cert \
 --ca-key-object-name isito-intermediat-key \
---cert-chain-object-name istio-cert-chain \
---key-vault-id ${AKV_ID}
+--cert-chain-object-name istio-cert-chain
 ```
 
 <div class="info" data-title="Note">
@@ -781,18 +938,6 @@ The first step to onboarding your application into a service mesh, is to enable 
 <div class="info" data-title="Note">
 
 > For upgrade scenarios, it is possible to run multiple Istio add-on control planes with different versions. The following command enables sidecar injection for the Istio revision `asm-1-22`. If you are not sure which revision is installed on the cluster, you can run the following command `az aks show --resource-group ${RG_NAME} --name ${AKS_NAME}  --query "serviceMeshProfile.istio.revisions"`
-
-</div>
-
-Prior to running the command to enable the Istio sidecar injection, let's first view the existing pods in the `pets` namespace.
-
-```bash
-kubectl get pods -n pets
-```
-
-<div class="info" data-title="Note">
-
-> If your cluster does not already have a deployment of the AKS Store Demo application, please check the [Deploying the AKS Store Demo Application](#deploying-the-aks-store-demo-application) section to deploy the application.
 
 </div>
 
@@ -820,7 +965,7 @@ kubectl rollout restart deployment product-service -n pets
 kubectl rollout restart deployment store-front -n pets
 ```
 
-If we re-run the get pods command for the `pets` namespace, you will notice all of the pods now have a `READY` state of `2/2`, meaning the pods now include the sidecar proxy for Istio. The RabbitMQ for the AKS Store application is not a Kubernetes deployment, but is a stateful set.  We will need to redeploy the RabbitMQ stateful set to get the sidecar proxy injection.
+If we re-run the get pods command for the `pets` namespace, you will notice all of the pods now have a `READY` state of `2/2`, meaning the pods now include the sidecar proxy for Istio. The RabbitMQ for the AKS Store application is not a Kubernetes deployment, but is a stateful set. We will need to redeploy the RabbitMQ stateful set to get the sidecar proxy injection.
 
 ```bash
 kubectl rollout restart statefulset rabbitmq -n pets
@@ -875,13 +1020,10 @@ Currently Istio configures managed workloads to use mTLS when calling other work
 
 Prior to deploying the mTLS strict mode, let's verify that the **store-front** service will respond to a client not using mTLS. We will invoke a call from the test pod to the **store-front** service and see if we get a response.
 
-Run the following command to get the name of the test pod, add it to the **.env** file and source the file.
+Run the following command to get the name of the test pod.
 
 ```bash
-cat <<EOF >> .env
 CURL_POD_NAME="$(kubectl get pod -l app=curl -o jsonpath="{.items[0].metadata.name}")"
-EOF
-source .env
 ```
 
 Run the following command to run a curl command from the test pod to the **store-front** service.
@@ -915,7 +1057,7 @@ kubectl exec -it ${CURL_POD_NAME} -- curl -IL store-front.pets.svc.cluster.local
 
 Notice that the curl client failed to get a response from the **store-front** service. The error returned is the indication that the mTLS policy has been enforced, and that the **store-front** service has rejected the non mTLS communication from the test pod.
 
-To verify that the `store-front` service is still accessible for pods in the `pets` namespace where the mTLS Peer Authentication policy is deployed, we will again deploy the **curl** image utility pod in the `pets` namespace. That pod will automatically get the sidecar injection of the Istio proxy, along with the policy that will enable it to securly communicate to the `store-front` service. 
+To verify that the `store-front` service is still accessible for pods in the `pets` namespace where the mTLS Peer Authentication policy is deployed, we will again deploy the **curl** image utility pod in the `pets` namespace. That pod will automatically get the sidecar injection of the Istio proxy, along with the policy that will enable it to securly communicate to the `store-front` service.
 
 Use the following command to deploy the test pod that will run the **curl** image to the **pets** namespace of the cluster.
 
@@ -951,13 +1093,10 @@ kubectl get pods -n pets | grep curl
 
 Wait for the test pod to be in a **Running** state, and notice the `READY` state, which should have a status of `2/2`.
 
-Run the following command to get the name of the test pod in the `pets` namespace, add it to the **.env** file and source the file.
+Run the following command to get the name of the test pod in the `pets` namespace.
 
 ```bash
-cat <<EOF >> .env
 CURL_PETS_POD_NAME="$(kubectl get pod -n pets -l app=curl -o jsonpath="{.items[0].metadata.name}")"
-EOF
-source .env
 ```
 
 Run the following command to run a curl command from the test pod in the `pets` namespace to the **store-front** service.
@@ -1057,7 +1196,6 @@ az aks update \
 --enable-azure-container-storage ephemeralDisk \
 --azure-container-storage-nodepools ${ACSTOR_NODEPOOL_NAME} \
 --storage-pool-option NVMe \
---node-vm-size Standard_L8s_v3 \
 --ephemeral-disk-volume-type PersistentVolumeWithAnnotation
 ```
 
