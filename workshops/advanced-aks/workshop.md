@@ -103,10 +103,12 @@ az group create \
 --location ${LOCATION}
 ```
 
+### Deploy Azure resources using Bicep
+
 Run the following command to download the Bicep template file to deploy the lab resources.
 
 ```bash
-curl -o main.bicep https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/workshops/advanced-aks/assets/main.bicep
+curl https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/workshops/advanced-aks/assets/main.bicep -o main.bicep
 ```
 
 Verify the contents of the **main.bicep** file by running the following command.
@@ -134,15 +136,13 @@ az deployment group create \
 --no-wait
 ```
 
-This deployment will take a few minutes to complete. You can move on to the next section while the resources are being deployed.
+This deployment will take a few minutes to complete. Move on to the next section while the resources are being deployed.
 
----
-
-## AKS Deployment Strategies
+### AKS Deployment Strategies
 
 In this section, you will explore cluster setup considerations such as cluster sizing and topology, system and user node pools, and availability zones. You will create an AKS cluster implementing some of the best practices for production clusters. Not all best practices will be covered in this workshop, but you will have a good foundation to build upon.
 
-### Size Considerations
+#### Size Considerations
 
 Before you deploy an AKS cluster, it's essential to consider its size based on your workload requirements. The number of nodes needed depends on the number of pods you plan to run, while node configuration is determined by the amount of CPU and memory required for each pod. As you know more about your workload requirements, you can adjust the number of nodes and the size of the nodes.
 
@@ -154,13 +154,13 @@ When it comes to considering the size of the node, it is important to understand
 
 </div>
 
-### System and User Node Pools
+#### System and User Node Pools
 
 When an AKS cluster is created, a single node pool is created. The single node pool will run Kubernetes system components required to run the Kubernetes control plane. It is recommended to create a separate node pool for user workloads. This separation allows you to manage system and user workloads independently.
 
 System node pools serve the primary purpose of hosting pods implementing the Kubernetes control plane, such as **kube-apiserver**, **coredns**, and **metrics-server** just to name a few. User node pools are additional pools of compute that can be created to host user workloads. User node pools can be created with different configurations than the system node pool, such as different VM sizes, node counts, and availability zones and are added after the cluster is created.
 
-### Resilience with Availability Zones
+#### Resilience with Availability Zones
 
 When creating an AKS cluster, you can specify the use of [availability zones](https://learn.microsoft.com/azure/aks/availability-zones) which will distribute control plane zones within a region. You can think of availability zones as separate data centers within a large geographic region. By distributing the control plane across availability zones, you can ensure high availability for the control plane. In an Azure region, there are typically three availability zones, each with its own power source, network, and cooling.
 
@@ -279,11 +279,11 @@ GRAFANA_NAME="$(az grafana list -g ${RG_NAME} --query "[0].name" -o tsv)"
 GRAFANA_ID="$(az grafana list -g ${RG_NAME} --query "[0].id" -o tsv)"
 LOGS_ID="$(az monitor log-analytics workspace list -g ${RG_NAME} --query "[0].id" -o tsv)"
 AKV_NAME="$(az keyvault list --resource-group ${RG_NAME} --query "[0].name" -o tsv)"
-AKV_ID="$(az keyvault show --name ${AKV_NAME} --query "id" -o tsv)"
-AKV_URL="$(az keyvault show --name ${AKV_NAME} --query "properties.vaultUri" -o tsv)"
+AKV_ID="$(az keyvault list --resource-group ${RG_NAME} --query "[0].id" -o tsv)"
+AKV_URL="$(az keyvault list --resource-group ${RG_NAME} --query "[0].properties.vaultUri" -o tsv)"
 ACR_NAME="$(az acr list --resource-group ${RG_NAME} --query "[0].name" -o tsv)"
-ACR_ID="$(az acr show --name ${ACR_NAME} --query "id" -o tsv)"
-ACR_SERVER="$(az acr show -n ${ACR_NAME} --query "loginServer" -o tsv)"
+ACR_ID="$(az acr list --resource-group ${RG_NAME} --query "[0].id" -o tsv)"
+ACR_SERVER="$(az acr list --resource-group ${RG_NAME} --query "[0].loginServer" -o tsv)"
 EOF
 source .env
 ```
@@ -382,7 +382,9 @@ Copy the **EXTERNAL-IP** of the **store-front** service to your browser to acces
 
 ## Advanced Networking Concepts
 
-TODO: Add content about Azure CNI Overlay with Cilium
+When you created the AKS cluster you might have noticed that we used the Azure CNI network plugin in overlay mode with [Cilium](https://cilium.io/) for the network dataplane and security. This mode is the most advanced networking mode available in AKS and provides the most flexibility in how IP addresses are assigned to pods and how network policies are enforced.
+
+In this section, you will explore advanced networking concepts such as network policies, FQDN filtering, and advanced container networking services.
 
 ### Advanced Container Networking Services
 
@@ -643,7 +645,7 @@ Port forward Hubble Relay using the kubectl port-forward command.
 kubectl port-forward -n kube-system svc/hubble-relay --address 127.0.0.1 4245:443
 ```
 
-Move the port forward to the background by pressing **Ctrl + z** and then type `bg`.
+Move the port forward to the background by pressing **Ctrl + z** and then type **bg**.
 
 Configure the client with hubble certificate
 
@@ -821,7 +823,7 @@ Navigate into the recently cloned Istio directory.
 cd istio
 ```
 
-Once in the `istio` directory, create the `akslab-certs` directory and navigate into it.
+Once in the **istio** directory, create the **akslab-certs** directory and navigate into it.
 
 ```bash
 mkdir -p akslab-certs
@@ -840,18 +842,18 @@ Generate the intermediate certificate and key
 make -f ../tools/certs/Makefile.selfsigned.mk intermediate-cacerts
 ```
 
-This will create a directory called `intermediate` which will contain the intermediate CA certificate information.
+This will create a directory called **intermediate** which will contain the intermediate CA certificate information.
 
 #### Add the CA Certificates to Azure Key Vault
 
 We will utilize Azure KeyVault to store the root and intermediate CA certificate information.
 
-In the `akslab-certs` directory, run the following commands.
+In the **akslab-certs** directory, run the following commands.
 
 ```bash
 az keyvault secret set --vault-name ${AKV_NAME} --name istio-root-cert --file root-cert.pem
-az keyvault secret set --vault-name ${AKV_NAME} --name istio-intermediat-cert --file ./intermediate/ca-cert.pem
-az keyvault secret set --vault-name ${AKV_NAME} --name isito-intermediat-key --file ./intermediate/ca-key.pem
+az keyvault secret set --vault-name ${AKV_NAME} --name istio-intermediate-cert --file ./intermediate/ca-cert.pem
+az keyvault secret set --vault-name ${AKV_NAME} --name istio-intermediate-key --file ./intermediate/ca-key.pem
 az keyvault secret set --vault-name ${AKV_NAME} --name istio-cert-chain --file ./intermediate/cert-chain.pem
 ```
 
@@ -916,8 +918,8 @@ az aks mesh enable \
 --name ${AKS_NAME} \
 --key-vault-id ${AKV_ID} \
 --root-cert-object-name istio-root-cert \
---ca-cert-object-name istio-intermediat-cert \
---ca-key-object-name isito-intermediat-key \
+--ca-cert-object-name istio-intermediate-cert \
+--ca-key-object-name istio-intermediate-key \
 --cert-chain-object-name istio-cert-chain
 ```
 
@@ -945,7 +947,7 @@ The first step to onboarding your application into a service mesh, is to enable 
 
 </div>
 
-The following command will enable the AKS Istio add-on sidecar injection for the `pets` namespace for the Istio revision `1.22`.
+The following command will enable the AKS Istio add-on sidecar injection for the **pets** namespace for the Istio revision **1.22**.
 
 ```bash
 kubectl label namespace pets istio.io/rev=asm-1-22
@@ -953,15 +955,15 @@ kubectl label namespace pets istio.io/rev=asm-1-22
 
 At this point, we have simply just labeled the namespace, instructing the Istio control plane to enable sidecar injection on new deployments into the namespace. Since we have existing deployments in the namespace already, we will need to restart the deployments to trigger the sidecar injection.
 
-Get a list of all the current pods running in the `pets` namespace.
+Get a list of all the current pods running in the **pets** namespace.
 
 ```bash
 kubectl get pods -n pets
 ```
 
-You'll notice that each pod listed has a `READY` state of `1/1`. This means there is one container (the application container) per pod. We will restart the deployments to have the Istio sidecar proxies injected into each pod.
+You'll notice that each pod listed has a **READY** state of **1/1**. This means there is one container (the application container) per pod. We will restart the deployments to have the Istio sidecar proxies injected into each pod.
 
-Restart the deployments for the `order-service`, `product-service`, and `store-front`.
+Restart the deployments for the **order-service**, **product-service**, and **store-front**.
 
 ```bash
 kubectl rollout restart deployment order-service -n pets
@@ -969,13 +971,13 @@ kubectl rollout restart deployment product-service -n pets
 kubectl rollout restart deployment store-front -n pets
 ```
 
-If we re-run the get pods command for the `pets` namespace, you will notice all of the pods now have a `READY` state of `2/2`, meaning the pods now include the sidecar proxy for Istio. The RabbitMQ for the AKS Store application is not a Kubernetes deployment, but is a stateful set. We will need to redeploy the RabbitMQ stateful set to get the sidecar proxy injection.
+If we re-run the get pods command for the **pets** namespace, you will notice all of the pods now have a **READY** state of **2/2**, meaning the pods now include the sidecar proxy for Istio. The RabbitMQ for the AKS Store application is not a Kubernetes deployment, but is a stateful set. We will need to redeploy the RabbitMQ stateful set to get the sidecar proxy injection.
 
 ```bash
 kubectl rollout restart statefulset rabbitmq -n pets
 ```
 
-If you again re-run the get pods command for the `pets` namespace, we'll see all the pods with a `READY` state of `2/2`
+If you again re-run the get pods command for the **pets** namespace, we'll see all the pods with a **READY** state of **2/2**
 
 ```bash
 kubectl get pods -n pets
@@ -1020,7 +1022,7 @@ Wait for the test pod to be in a **Running** state.
 
 ##### Configure mTLS Strict Mode for the pets namespace
 
-Currently Istio configures managed workloads to use mTLS when calling other workloads, but the default permissive mode allows a service to accept traffic in both plaintext or mTLS traffic. To ensure that the workloads we manage with the Istio add-on only accept mTLS communication, we will deploy a Peer Authentication policy to enforce only mTLS traffic for the workloads in the `pets` namespace.
+Currently Istio configures managed workloads to use mTLS when calling other workloads, but the default permissive mode allows a service to accept traffic in both plaintext or mTLS traffic. To ensure that the workloads we manage with the Istio add-on only accept mTLS communication, we will deploy a Peer Authentication policy to enforce only mTLS traffic for the workloads in the **pets** namespace.
 
 Prior to deploying the mTLS strict mode, let's verify that the **store-front** service will respond to a client not using mTLS. We will invoke a call from the test pod to the **store-front** service and see if we get a response.
 
@@ -1036,7 +1038,7 @@ Run the following command to run a curl command from the test pod to the **store
 kubectl exec -it ${CURL_POD_NAME} -- curl -IL store-front.pets.svc.cluster.local:80
 ```
 
-You should see a response with a status of **HTTP/1.1 200 OK** indicating that the **store-front** service successfully responded to the client Let's now apply the Peer Authentication policy that will enforce all services in the `pets` namespace to only use mTLS communication.
+You should see a response with a status of **HTTP/1.1 200 OK** indicating that the **store-front** service successfully responded to the client Let's now apply the Peer Authentication policy that will enforce all services in the **pets** namespace to only use mTLS communication.
 
 Run the following command to configure the mTLS Peer Authentication policy.
 
@@ -1053,7 +1055,7 @@ spec:
 EOF
 ```
 
-Once the mTLS strict mode peer authentication policy has been applied, we will now see if we can again get a response back from the `store-front` service from a client not using mTLS. Run the following command to curl to the **store-front** service again.
+Once the mTLS strict mode peer authentication policy has been applied, we will now see if we can again get a response back from the **store-front** service from a client not using mTLS. Run the following command to curl to the **store-front** service again.
 
 ```bash
 kubectl exec -it ${CURL_POD_NAME} -- curl -IL store-front.pets.svc.cluster.local:80
@@ -1061,7 +1063,7 @@ kubectl exec -it ${CURL_POD_NAME} -- curl -IL store-front.pets.svc.cluster.local
 
 Notice that the curl client failed to get a response from the **store-front** service. The error returned is the indication that the mTLS policy has been enforced, and that the **store-front** service has rejected the non mTLS communication from the test pod.
 
-To verify that the `store-front` service is still accessible for pods in the `pets` namespace where the mTLS Peer Authentication policy is deployed, we will again deploy the **curl** image utility pod in the `pets` namespace. That pod will automatically get the sidecar injection of the Istio proxy, along with the policy that will enable it to securly communicate to the `store-front` service.
+To verify that the **store-front** service is still accessible for pods in the **pets** namespace where the mTLS Peer Authentication policy is deployed, we will again deploy the **curl** image utility pod in the **pets** namespace. That pod will automatically get the sidecar injection of the Istio proxy, along with the policy that will enable it to securely communicate to the **store-front** service.
 
 Use the following command to deploy the test pod that will run the **curl** image to the **pets** namespace of the cluster.
 
@@ -1095,21 +1097,21 @@ We can again verify the deployment of the test pod in the **pets** namespace usi
 kubectl get pods -n pets | grep curl
 ```
 
-Wait for the test pod to be in a **Running** state, and notice the `READY` state, which should have a status of `2/2`.
+Wait for the test pod to be in a **Running** state, and notice the **READY** state, which should have a status of **2/2**.
 
-Run the following command to get the name of the test pod in the `pets` namespace.
+Run the following command to get the name of the test pod in the **pets** namespace.
 
 ```bash
 CURL_PETS_POD_NAME="$(kubectl get pod -n pets -l app=curl -o jsonpath="{.items[0].metadata.name}")"
 ```
 
-Run the following command to run a curl command from the test pod in the `pets` namespace to the **store-front** service.
+Run the following command to run a curl command from the test pod in the **pets** namespace to the **store-front** service.
 
 ```bash
 kubectl exec -it ${CURL_PETS_POD_NAME} -n pets -- curl -IL store-front.pets.svc.cluster.local:80
 ```
 
-You should see a response with a status of **HTTP/1.1 200 OK** indicating that the **store-front** service successfully responded to the client in the `pets` namespace using only mTLS communication.
+You should see a response with a status of **HTTP/1.1 200 OK** indicating that the **store-front** service successfully responded to the client in the **pets** namespace using only mTLS communication.
 
 ---
 
@@ -1180,7 +1182,7 @@ EOF
 source .env
 ```
 
-Run the following command to create a new node pool with `Standard_L8s_v3` VMs.
+Run the following command to create a new node pool with **Standard_L8s_v3** VMs.
 
 ```bash
 az aks nodepool add \
@@ -1351,7 +1353,7 @@ EOF
 
 #### Verify the entries in the MySQL server
 
-Run the following command to verify the creation of database, tabl, and entries.
+Run the following command to verify the creation of database, table, and entries.
 
 ```bash
 kubectl run mysql-client --image=mysql:5.7 -i -t --rm --restart=Never -- \
@@ -1475,7 +1477,7 @@ Congratulations! You successfully created a replicated local NVMe storage pool u
 
 ## Advanced Security Concepts
 
-TODO: Add a brief description of the section
+Security is a critical aspect of any application deployment and it can cover a wide range of areas. In this lab, we will focus on how to securely access resources in Azure from an AKS cluster using Workload Identity and the Secure Software Supply Chain. Workload Identity allows you to securely access Azure resources from your applications running on AKS without needing to manage credentials. When it comes to secure software supply chain, we will focus on using Notation to sign and verify container images. This will help ensure that the images you deploy are the ones you expect.
 
 ### Workload Identity
 
@@ -1614,7 +1616,7 @@ az role assignment create \
 
 #### Deploy a Sample Application Utilizing Workload Identity
 
-When you deploy your application pods, the manifest should reference the service account created in the Create Kubernetes service account step. The following manifest deploys the `busybox` image and shows how to reference the account, specifically the metadata\namespace and spec\serviceAccountName properties.
+When you deploy your application pods, the manifest should reference the service account created in the Create Kubernetes service account step. The following manifest deploys the **busybox** image and shows how to reference the account, specifically the metadata\namespace and spec\serviceAccountName properties.
 
 ```bash
 kubectl apply -f - <<EOF
@@ -1731,7 +1733,7 @@ shasum --check notation_$NOTATION_VERSION\_checksums.txt
 
 If the checksum verification is successful, you should see something like this (the result shown here is for Linux AMD64):
 
-```bash
+```text
 shasum: notation_1.2.0_darwin_amd64.tar.gz: No such file or directory
 notation_1.2.0_darwin_amd64.tar.gz: FAILED open or read
 shasum: notation_1.2.0_darwin_arm64.tar.gz: No such file or directory
@@ -1788,7 +1790,7 @@ notation plugin ls
 
 <div class="info" data-title="Note">
 
-> If you have already created an Azure Container Registry and Azure Key Vault, you can skip this section. Make sure the environment variables `AKV_NAME` and `ACR_NAME` are set correctly.
+> If you have already created an Azure Container Registry and Azure Key Vault, you can skip this section. Make sure the environment variables **AKV_NAME** and **ACR_NAME** are set correctly.
 
 </div>
 
@@ -1875,7 +1877,7 @@ Get the ID of the signing key. The following command will get the Key ID of the 
 KEY_ID="$(az keyvault certificate show -n $CERT_NAME --vault-name $AKV_NAME --query 'kid' -o tsv)"
 ```
 
-Sign the image with the [COSE](https://datatracker.ietf.org/doc/html/rfc9052) format using the Notation Azure Key Vault plugin and the key retrieved in the previous step with the following command.
+Sign the image with the [CBOR Object Signing and Encryption (COSE): Structures and Process](https://datatracker.ietf.org/doc/html/rfc9052) format using the Notation Azure Key Vault plugin and the key retrieved in the previous step with the following command.
 
 ```bash
 notation sign \
@@ -1937,7 +1939,7 @@ cat <<EOF > ./trust_policy.json
 EOF
 ```
 
-Import and verify the trust policy from the **trust_poilicy.json** file using the following Notation CLI commands.
+Import and verify the trust policy from the **trust_policy.json** file using the following Notation CLI commands.
 
 ```bash
 notation policy import ./trust_policy.json
@@ -2040,7 +2042,7 @@ Now, you can edit the `ama-metrics-settings-configmap` to enable the metrics you
 kubectl edit cm ama-metrics-settings-configmap -n kube-system
 ```
 
-Toggle any of the metrics you wish to collect to `true`, but keep in mind that the more metrics you collect, the more resources you will consume.
+Toggle any of the metrics you wish to collect to **true**, but keep in mind that the more metrics you collect, the more resources you will consume.
 
 <div class="info" data-title="Note">
 
@@ -2206,7 +2208,7 @@ az aks update \
 --auto-upgrade-channel patch
 ```
 
-Once the auto-upgrade channel subscription has been enabled for your cluster, you will see the `upgradeChannel` property updated to the chosen channel in the output.
+Once the auto-upgrade channel subscription has been enabled for your cluster, you will see the **upgradeChannel** property updated to the chosen channel in the output.
 
 <div class="important" data-title="Important">
 
@@ -2233,7 +2235,7 @@ az aks nodepool get-upgrades \
 --nodepool-name systempool
 ```
 
-The command output shows the `latestNodeImageVersion` available for the nodepool.
+The command output shows the **latestNodeImageVersion** available for the nodepool.
 
 Check the current node image version for the system node pool by running the following command.
 
@@ -2282,7 +2284,7 @@ If you receive `[]` as output, this means no maintenance windows exists for the 
 
 Maintenance window configuration is highly configurable to meet the scheduling needs of your organization. For an in-depth understanding of all the properties available for configuration, please see the [Create a maintenance window](https://learn.microsoft.com/azure/aks/planned-maintenance?tabs=azure-cli#create-a-maintenance-window) guide.
 
-The following command will create a `default` configuration that schedules maintenance to run from 1:00 AM to 2:00 AM every Sunday.
+The following command will create a **default** configuration that schedules maintenance to run from 1:00 AM to 2:00 AM every Sunday.
 
 ```bash
 az aks maintenanceconfiguration add \
@@ -2376,7 +2378,7 @@ az fleet get-credentials \
 
 Now that you have the credential information merged to your local Kubernetes config file, we will need to configure and authorize Azure role access for your account to access the Kubernetes API for the Fleet resource.
 
-Once we have all of the terminal environment variables set, we can run the command to add the Azure account to be a "Azure Kubernetes Fleet Manager RBAC Cluster Admin" role on the Fleet resource.
+Once we have all of the terminal environment variables set, we can run the command to add the Azure account to be a **Azure Kubernetes Fleet Manager RBAC Cluster Admin** role on the Fleet resource.
 
 ```bash
 az role assignment create \
@@ -2388,12 +2390,6 @@ az role assignment create \
 #### Joining Existing AKS Cluster to the Fleet
 
 Now that we have our Fleet hub cluster created, along with the necessary Fleet API access, we're now ready to join our AKS clusters to Fleet as member servers. To join AKS clusters to Fleet, we will need the Azure subscription path to each AKS object. To get the subscription path to your AKS clusters, you can run the following commands.
-
-<div class="info" data-title="Note">
-
-> The following commands are referencing environment variables created in the earlier terminal session. If you are using a new terminal session, please create the `SUBSCRIPTION_ID`, `RESOURCE_GROUP`, and `FLEET_NAME` variables before proceeding.
-
-</div>
 
 ```bash
 AKS_FLEET_CLUSTER_1_NAME="$(echo ${AKS_NAME} | tr '[:upper:]' '[:lower:]')"
@@ -2420,7 +2416,7 @@ az fleet member create \
 --member-cluster-id ${AKS_FLEET_CLUSTER_2_ID}
 ```
 
-Once the `az fleet member create` command has completed for both AKS clusters, we can verify they have both been added and enabled for Fleet running the following command.
+Run the following command to verify both AKS clusters have been added to the Fleet.
 
 ```bash
 kubectl get memberclusters
@@ -2432,7 +2428,7 @@ The ClusterResourcePlacement API object is used to propagate resources from a hu
 
 <div class="important" data-title="Important">
 
-> Before running the following commands, make sure your `kubectl conifg` has the Fleet hub cluster as it's current context. To check your current context, run the `kubectl config current-context` command. You should see the output as `hub`. If the output is not `hub`, please run `kubectl config set-context hub`.
+> Before running the following commands, make sure your `kubectl conifg` has the Fleet hub cluster as it's current context. To check your current context, run the `kubectl config current-context` command. You should see the output as **hub**. If the output is not **hub**, please run `kubectl config set-context hub`.
 
 </div>
 
@@ -2473,13 +2469,23 @@ View the details of the ClusterResourcePlacement object using the following comm
 kubectl describe clusterresourceplacement my-lab-crp
 ```
 
-TODO: Add some content recapping what was done in this section.
+Now if you switch your context to one of the member clusters, you should see the namespace `my-fleet-ns` has been propagated to the member cluster.
+
+```bash
+kubectl config set-context ${AKS_FLEET_CLUSTER_1_NAME}
+```
+
+You should see the namespace **my-fleet-ns** in the list of namespaces.
+
+This is a simple example of how you can use AKS Fleet Manager to manage multiple AKS clusters. There are many more features and capabilities that AKS Fleet Manager provides to help manage and operate multiple AKS clusters. For more information on AKS Fleet Manager, see the [Azure Kubernetes Fleet Manager](https://learn.microsoft.com/azure/kubernetes-fleet/) documentation.
 
 ---
 
 ## Summary
 
-TODO: Add summary
+Congratulations! If you've completed all the exercises in this lab, you are well on your way to becoming an Azure Kubernetes Service (AKS) expert. You've learned how to create an AKS cluster, deploy applications, configure networking, and secure your cluster. You've also learned how to monitor your AKS cluster, manage updates, and even manage multiple AKS clusters with Azure Kubernetes Fleet Manager. Hopefully, you've gained a better understanding of how to manage and operate AKS clusters in a production environment.
+
+The cloud is always evolving, and so is AKS. It's important to stay up-to-date with the latest features and best practices. The Azure Kubernetes Service (AKS) documentation is a great resource to learn more about AKS and stay up-to-date with the latest features and best practices. You can find the AKS documentation [here](https://learn.microsoft.com/azure/aks/) as well as the links listed below.
 
 ### Additional Resources
 
@@ -2487,5 +2493,7 @@ TODO: Add summary
 - [AKS baseline architecture](https://learn.microsoft.com/azure/architecture/reference-architectures/containers/aks/baseline-aks)
 - [AKS baseline for multi-region clusters](https://learn.microsoft.com/azure/architecture/reference-architectures/containers/aks-multi-region/aks-multi-cluster)
 - [Create a private Azure Kubernetes Service (AKS) cluster](https://learn.microsoft.com/azure/aks/private-clusters?tabs=default-basic-networking%2Cazure-portal)
+- [Configure Azure CNI Powered by Cilium in Azure Kubernetes Service (AKS)](https://learn.microsoft.com/azure/aks/azure-cni-powered-by-cilium)
 - [Set up Advanced Network Observability for Azure Kubernetes Service (AKS)](https://learn.microsoft.com/azure/aks/advanced-network-observability-cli?tabs=cilium)
 - [Install Azure Container Storage for use with Azure Kubernetes Service](https://learn.microsoft.com/azure/storage/container-storage/install-container-storage-aks)
+- [Kubernetes resource propagation from hub cluster to member clusters](https://learn.microsoft.com/azure/kubernetes-fleet/concepts-resource-propagation)
