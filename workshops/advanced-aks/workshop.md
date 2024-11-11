@@ -290,7 +290,7 @@ source .env
 
 <div class="tip" data-title="Tip">
 
-> Whenever you want to see the contents of the **.env** file, run the `cat .env` command.
+> Whenever you want to see the contents of the **.env** file, run the **cat .env** command.
 
 </div>
 
@@ -703,7 +703,7 @@ Here we can see traffic coming from world dropped in store-front
 
 ![Hubble CLI](assets/acns-hubble-cli.png)
 
-So now we can tell that there is a problem with the frontend ingress traffic configuration, let's review the `allow-store-front-traffic` policy
+So now we can tell that there is a problem with the frontend ingress traffic configuration, let's review the **allow-store-front-traffic** policy
 
 ```bash
 kubectl describe -n pets cnp allow-store-front-traffic
@@ -876,7 +876,7 @@ az aks enable-addons \
 
 <div class="info" data-title="Note">
 
-> For the purposes of this lab, we are using the `Key Vault Administrator` role. Please consider a role with lesser privileges for accessing Azure Key Vault in a production environment.
+> For the purposes of this lab, we are using the **Key Vault Administrator** role. Please consider a role with lesser privileges for accessing Azure Key Vault in a production environment.
 
 </div>
 
@@ -943,7 +943,7 @@ The first step to onboarding your application into a service mesh, is to enable 
 
 <div class="info" data-title="Note">
 
-> For upgrade scenarios, it is possible to run multiple Istio add-on control planes with different versions. The following command enables sidecar injection for the Istio revision `asm-1-22`. If you are not sure which revision is installed on the cluster, you can run the following command `az aks show --resource-group ${RG_NAME} --name ${AKS_NAME}  --query "serviceMeshProfile.istio.revisions"`
+> For upgrade scenarios, it is possible to run multiple Istio add-on control planes with different versions. The following command enables sidecar injection for the Istio revision **asm-1-22**. If you are not sure which revision is installed on the cluster, you can run the following command `az aks show --resource-group ${RG_NAME} --name ${AKS_NAME}  --query "serviceMeshProfile.istio.revisions"`
 
 </div>
 
@@ -1318,7 +1318,7 @@ mysql        ClusterIP   None           <none>        3306/TCP   5h43m
 mysql-read   ClusterIP   10.0.205.191   <none>        3306/TCP   5h43m
 ```
 
-Run the following command to verify that MySql server pod is running. Add the `--watch` to wait and watch until the pod goes from Init to **Running** state.
+Run the following command to verify that MySql server pod is running. Add the **--watch** to wait and watch until the pod goes from Init to **Running** state.
 
 ```bash
 kubectl get pods -l app=mysql -o wide --watch
@@ -1333,7 +1333,7 @@ mysql-0   2/2     Running   0          1m34s  10.244.3.16   aks-nodepool1-285671
 
 <div class="info" data-title="Note">
 
-> Keep a note of the node on which the `mysql-0` pod is running.
+> Keep a note of the node on which the **mysql-0** pod is running.
 
 </div>
 
@@ -1398,16 +1398,16 @@ az aks nodepool scale \
 --no-wait
 ```
 
-Now we want to force the failover by deleting the node on which the `mysql-0` pod is running.
+Now we want to force the failover by deleting the node on which the **mysql-0** pod is running.
 
-Run the following commands to get the name of the node on which the `mysql-0` pod is running.
+Run the following commands to get the name of the node on which the **mysql-0** pod is running.
 
 ```bash
 POD_NAME=$(kubectl get pods -l app=mysql -o custom-columns=":metadata.name" --no-headers)
 NODE_NAME=$(kubectl get pods $POD_NAME -o jsonpath='{.spec.nodeName}')
 ```
 
-Run the following command to delete the node on which the `mysql-0` pod is running.
+Run the following command to delete the node on which the **mysql-0** pod is running.
 
 ```bash
 kubectl delete node $NODE_NAME
@@ -1415,7 +1415,7 @@ kubectl delete node $NODE_NAME
 
 #### Observe that the mysql pods are running
 
-Run the following command to get the pods and observe that the `mysql-0` pod is running on a different node.
+Run the following command to get the pods and observe that the **mysql-0** pod is running on a different node.
 
 ```bash
 kubectl get pods -l app=mysql -o wide --watch
@@ -1748,7 +1748,7 @@ notation_1.2.0_windows_amd64.zip: FAILED open or read
 shasum: WARNING: 5 listed files could not be read
 ```
 
-If the checksum verification is successful, extract the binary and move it to the desired bin directory in your `$PATH`.
+If the checksum verification is successful, extract the binary and move it to the desired bin directory in your **$PATH**.
 
 ```bash
 tar xvf notation_$NOTATION_VERSION\_${OS}_${ARCH}.tar.gz
@@ -1780,7 +1780,7 @@ After installing Notation, install the Notation Azure Key Vault plugin. You can 
 notation plugin install --url https://github.com/Azure/notation-azure-kv/releases/download/v${NOTATION_VERSION}/notation-azure-kv_${NOTATION_VERSION}_${OS}_${ARCH}.tar.gz --sha256sum <checksum_from_the_release_page>
 ```
 
-Once the plugin is installed, confirm the `azure-kv` plugin is installed by running the following command:
+Once the plugin is installed, confirm the **azure-kv** plugin is installed by running the following command:
 
 ```bash
 notation plugin ls
@@ -1815,7 +1815,7 @@ IMAGE_SOURCE="https://github.com/wabbit-networks/net-monitor.git#main"
 
 #### Create a self-signed certificate in Azure Key Vault
 
-Use the following command to create a certificate policy file named `my_policy.json` which will be used the create the self-signed certificate in Azure Key Vault. The subject value will be used as the trust identity during verification.
+Use the following command to create a certificate policy file named **my_policy.json** which will be used the create the self-signed certificate in Azure Key Vault. The subject value will be used as the trust identity during verification.
 
 ```bash
 cat <<EOF > ./my_policy.json
@@ -2030,13 +2030,13 @@ Out of the box, only the etcd and kube-apiserver metrics data is being collected
 
 </div>
 
-Run the following command to deploy the `ama-metrics-settings-configmap` in the `kube-system` namespace.
+Run the following command to deploy the **ama-metrics-settings-configmap** in the **kube-system** namespace.
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/Azure/prometheus-collector/89e865a73601c0798410016e9beb323f1ecba335/otelcollector/configmaps/ama-metrics-settings-configmap.yaml
 ```
 
-Now, you can edit the `ama-metrics-settings-configmap` to enable the metrics you want to collect. Run the following command to edit the `ama-metrics-settings-configmap`.
+Now, you can edit the **ama-metrics-settings-configmap** to enable the metrics you want to collect. Run the following command to edit the **ama-metrics-settings-configmap**.
 
 ```bash
 kubectl edit cm ama-metrics-settings-configmap -n kube-system
@@ -2052,7 +2052,7 @@ Toggle any of the metrics you wish to collect to **true**, but keep in mind that
 
 ### Custom scrape jobs for Azure Managed Prometheus
 
-Typically when you want to scrape metrics from a target, you would create a scrape job in Prometheus. With Azure Managed Prometheus, you can create custom scrape jobs for your AKS cluster using the PodMonitor and ServiceMonitor custom resource definitions (CRDs) that is automatically created when you onboard your AKS cluster to Azure Managed Prometheus. These CRDs are nearly identical to the open-source Prometheus CRDs, with the only difference being the apiVersion. When you deploy a PodMonitor or ServiceMonitor for Azure Managed Prometheus, you will need to specify the apiVersion as `azmonitoring.coreos.com/v1` instead of `monitoring.coreos.com/v1`.
+Typically when you want to scrape metrics from a target, you would create a scrape job in Prometheus. With Azure Managed Prometheus, you can create custom scrape jobs for your AKS cluster using the PodMonitor and ServiceMonitor custom resource definitions (CRDs) that is automatically created when you onboard your AKS cluster to Azure Managed Prometheus. These CRDs are nearly identical to the open-source Prometheus CRDs, with the only difference being the apiVersion. When you deploy a PodMonitor or ServiceMonitor for Azure Managed Prometheus, you will need to specify the apiVersion as **azmonitoring.coreos.com/v1** instead of **monitoring.coreos.com/v1**.
 
 We'll go through a quick example of how to deploy a PodMonitor for a reference app that is deployed to your AKS cluster.
 
@@ -2068,7 +2068,7 @@ Run the following command to deploy a PodMonitor for the reference app
 kubectl apply -f https://raw.githubusercontent.com/Azure/prometheus-collector/refs/heads/main/otelcollector/deploy/example-custom-resources/pod-monitor/pod-monitor-reference-app.yaml
 ```
 
-Custom resource targets are scraped by pods that start with the name `ama-metrics-*` and the Prometheus Agent web user interface is available on port 9090. So we can port-forward the Prometheus pod to our local machine to access the Prometheus UI and explore all that is configured.
+Custom resource targets are scraped by pods that start with the name **ama-metrics-\*** and the Prometheus Agent web user interface is available on port 9090. So we can port-forward the Prometheus pod to our local machine to access the Prometheus UI and explore all that is configured.
 
 Run the following command to get the name of the Azure Monitor Agent pod.
 
@@ -2164,7 +2164,7 @@ We can also, quickly look at the current version of Kubernetes running on the no
 kubectl get nodes
 ```
 
-We can see all of the nodes in both the system and user node pools are at version `1.29.9` as well.
+We can see all of the nodes in both the system and user node pools are at version **1.29.9** as well.
 
 ```text
 NAME                                 STATUS   ROLES    AGE    VERSION
@@ -2174,7 +2174,7 @@ aks-systempool-14753261-vmss000002   Ready    <none>   123m   v1.29.9
 aks-userpool-27827974-vmss000000     Ready    <none>   95m    v1.29.9
 ```
 
-Run the following command to upgrade the current cluster API server, and the Kubernetes version running on the nodes, from version `1.29.9` to version `1.30.5`.
+Run the following command to upgrade the current cluster API server, and the Kubernetes version running on the nodes, from version **1.29.9** to version **1.30.5**.
 
 ```bash
 az aks upgrade \
@@ -2278,7 +2278,7 @@ az aks maintenanceconfiguration list \
 --cluster-name ${AKS_NAME}
 ```
 
-If you receive `[]` as output, this means no maintenance windows exists for the AKS cluster specified.
+If you receive **[]** as output, this means no maintenance windows exists for the AKS cluster specified.
 
 #### Adding an AKS Cluster Maintenance Windows
 
@@ -2319,7 +2319,7 @@ You can find and learn about additional AKS Fleet Manager concepts and functiona
 
 To understand how AKS Fleet Manager can help manage multiple AKS clusters, we will need to create an additional AKS cluster to join as a member cluster. The following commands and instructions will deploy an additional AKS cluster into the same Azure resource group as your existing AKS cluster. For this lab purposes, it is not necessary to deploy the additional cluster in a region and/or subscription to show the benefits of AKS Fleet Manager.
 
-Run the following command to save the new AKS cluster name to the `.env` file and reload the environment variables.
+Run the following command to create a new environment variable for the name of the additional AKS cluster.
 
 ```bash
 AKS_NAME_2="${AKS_NAME}-2"
@@ -2469,7 +2469,7 @@ View the details of the ClusterResourcePlacement object using the following comm
 kubectl describe clusterresourceplacement my-lab-crp
 ```
 
-Now if you switch your context to one of the member clusters, you should see the namespace `my-fleet-ns` has been propagated to the member cluster.
+Now if you switch your context to one of the member clusters, you should see the namespace **my-fleet-ns** has been propagated to the member cluster.
 
 ```bash
 kubectl config set-context ${AKS_FLEET_CLUSTER_1_NAME}
